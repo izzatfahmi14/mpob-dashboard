@@ -1,0 +1,884 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<title>MPOB LoRa Dashboard</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
+<style>
+:root{--bg:#f3f5f7;--panel:#fff;--soft:#f1f5f4;--bd:#dde3e6;--tx:#0f1b24;--mut:#667780;--ac:#0b7a5c;--acfg:#fff;--rail:#0e2a24;--railtx:#cfe3dc;
+--okbg:#ecfdf5;--xbg:#faf5ff;--xbd:#e9d5ff;--x:#7e22ce;--ok:#15803d;--inp:#fff;--sh:0 1px 2px rgba(15,27,36,.06),0 4px 14px rgba(15,27,36,.05)}
+:root[data-theme=dark]{--bg:#0a1110;--panel:#111c19;--soft:#16241f;--bd:#233630;--tx:#e5efea;--mut:#8aa399;--ac:#34d399;--acfg:#04201a;--rail:#070d0c;--railtx:#a9c4ba;
+--okbg:#0f2a21;--xbg:#231736;--xbd:#4c2a78;--x:#c084fc;--ok:#4ade80;--inp:#0d1614;--sh:0 1px 2px rgba(0,0,0,.4),0 6px 18px rgba(0,0,0,.25)}
+*{box-sizing:border-box}
+body{margin:0;font:14px/1.45 Inter,"Segoe UI",system-ui,sans-serif;background:var(--bg);color:var(--tx)}
+.app{display:grid;grid-template-columns:240px 1fr;min-height:100vh}
+.rail{position:sticky;top:0;height:100vh;background:var(--rail);color:var(--railtx);padding:18px 14px;display:flex;flex-direction:column;gap:6px;overflow:auto}
+.brand{display:flex;gap:10px;align-items:center;margin-bottom:14px}
+.logo{width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,#10b981,#f59e0b);display:grid;place-items:center;font-size:20px}
+.brand b{display:block;color:#fff;font-size:16px;letter-spacing:.5px}.brand span{font-size:12px;color:var(--railtx)}
+.nv{background:none;border:0;color:var(--railtx);text-align:left;padding:9px 12px;border-radius:8px;cursor:pointer;font:inherit}
+.nv:hover{background:rgba(255,255,255,.07)}.nv.on{background:rgba(52,211,153,.16);color:#fff;font-weight:600}
+.grp{margin-top:12px;padding:10px;border:1px solid rgba(255,255,255,.12);border-radius:10px;font-size:12px}
+.grp small{display:block;text-transform:uppercase;letter-spacing:.8px;opacity:.7;margin-bottom:6px}
+.grp input[type=number]{width:56px;padding:3px 5px;border:0;border-radius:5px;font:inherit;background:#fff;color:#111}
+.rail .b{background:rgba(255,255,255,.08);border-color:transparent;color:#e6f2ed;width:100%;justify-content:flex-start;margin-top:5px}
+.rail .b:hover{background:rgba(255,255,255,.16)}
+.live{margin-top:auto;font-size:11px;opacity:.75;display:flex;gap:6px;align-items:center}
+.live i{width:8px;height:8px;border-radius:50%;background:#34d399;box-shadow:0 0 0 3px rgba(52,211,153,.25)}
+main{padding:20px 26px;min-width:0}
+.top{display:flex;justify-content:space-between;align-items:end;margin-bottom:16px;gap:12px;flex-wrap:wrap}
+.top h2{margin:0;font-size:24px;letter-spacing:-.3px}.top p{margin:2px 0 0;color:var(--mut);font-size:13px}
+.flow{font-size:12px;color:var(--mut);background:var(--panel);border:1px solid var(--bd);padding:6px 12px;border-radius:99px}
+.b,.tb{font:inherit;padding:6px 11px;border:1px solid var(--bd);background:var(--panel);color:var(--tx);border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;gap:4px}
+.b:hover{border-color:var(--ac)}
+.b.p,.b.on,.tb.on{background:var(--ac);color:var(--acfg);border-color:var(--ac);font-weight:600}
+#tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.tb{border-radius:99px}
+.v{display:none}.v.on{display:block}
+.card{background:var(--panel);border:1px solid var(--bd);border-radius:14px;padding:14px;box-shadow:var(--sh)}
+.kp{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:16px}
+.kp .card{display:flex;flex-direction:column-reverse;gap:2px}
+.kp b{display:block;font-size:28px;font-weight:700;letter-spacing:-.5px}.kp span,.h{color:var(--mut);font-size:12px}
+.kp .kv{border-left:4px solid #16a34a}.kp .kx{border-left:4px solid #a855f7}
+.bl{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:14px}
+.pb{height:8px;background:var(--soft);border-radius:5px;overflow:hidden;margin:4px 0 8px}.pb i{display:block;height:100%;background:var(--ac)}
+.tl{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:10px;background:var(--panel);border:1px solid var(--bd);border-radius:12px;margin-bottom:8px}
+.tl label{font-size:12px;color:var(--mut)}
+.tl input,.tl select,aside input,aside select{font:inherit;padding:5px 7px;border:1px solid var(--bd);border-radius:7px;width:80px;background:var(--inp);color:var(--tx)}
+.tl input#q{width:200px}.sp{margin-left:auto;display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.lg{padding:2px 4px 8px;font-size:12px;color:var(--mut);display:flex;gap:14px;flex-wrap:wrap}
+.lg i{display:inline-block;width:11px;height:11px;border-radius:50%;border:1px solid #555;vertical-align:-1px;margin-right:4px}
+.lay{display:grid;grid-template-columns:1fr 300px;gap:12px}
+@media(max-width:900px){.lay{grid-template-columns:1fr}.app{grid-template-columns:1fr}.rail{position:static;height:auto;flex-direction:row;flex-wrap:wrap;align-items:center}.live{display:none}main{padding:14px}}
+#map{height:68vh;min-height:420px;border-radius:14px;background:var(--soft);border:1px solid var(--bd);position:relative}
+aside{overflow:auto;max-height:68vh}aside input{width:100%;margin-bottom:6px}aside label{display:block;font-size:12px;color:var(--mut);margin-top:4px}
+aside h3{margin-top:0}
+.r{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
+.nl{background:none;border:0;box-shadow:none;font-weight:700;font-size:10px;color:#111;text-shadow:0 0 3px #fff;padding:0}.nl:before{display:none}
+.tbl-lay{display:none;height:68vh;overflow:auto;background:var(--panel);border:1px solid var(--bd);border-radius:14px}
+#data-table,#raw-table{width:100%;border-collapse:collapse;font-size:13px}
+#data-table th,#raw-table th{background:var(--soft);position:sticky;top:0;padding:10px;text-align:left;border-bottom:2px solid var(--bd);color:var(--mut);z-index:2;font-size:12px;text-transform:uppercase;letter-spacing:.4px}
+#data-table td,#raw-table td{padding:6px 10px;border-bottom:1px solid var(--bd)}
+#raw-table{white-space:nowrap}
+#data-table tr:hover,#raw-table tr:hover{background:var(--soft)}
+#data-table input{width:100%;min-width:90px;padding:6px;border:1px solid var(--bd);border-radius:6px;font-family:ui-monospace,monospace;font-size:13px;background:var(--inp);color:var(--tx)}
+#data-table input:focus{outline:2px solid var(--ac);border-color:transparent}
+.ok{color:var(--ok);font-weight:700}.no{color:var(--x);font-weight:700}
+.leaflet-container{font-family:inherit}
+</style>
+</head>
+<body>
+<div class="app">
+<nav class="rail">
+  <div class="brand"><div class="logo">📡</div><div><b>MPOB</b><span>LoRa Dashboard</span></div></div>
+  <button class="nv on" data-v="dash" data-t="Overview" data-s="Block progress and field verification">▦ &nbsp;Overview</button>
+  <button class="nv" data-v="ed" data-t="Map Editor" data-s="Plant grid, tree IDs and live tree status">◎ &nbsp;Map Editor</button>
+  <button class="nv" data-v="raw" data-t="Raw Data" data-s="Every LoRa upload received from the gateway">☰ &nbsp;Raw Data</button>
+  <div class="grp">
+    <small>GPS validation</small>
+    <label title="An upload only counts for a tree if its GPS is within this distance of the mapped tree"><input type="checkbox" id="req" checked> Require GPS ≤ <input type="number" id="tol" min="1" max="200" step="1" value="10"> m</label>
+  </div>
+  <div class="grp">
+    <small>Data</small>
+    <button class="b" id="sbSync">☁ Sync now</button>
+    <button class="b" id="undoBtn" style="opacity:.5;cursor:not-allowed">↩ Undo (Ctrl+Z)</button>
+    <button class="b" id="ep">💾 Save project</button>
+    <label class="b">📂 Load project<input type="file" id="ip" accept=".json" hidden></label>
+  </div>
+  <button class="b" id="themeBtn" style="margin-top:12px">🌙 Dark mode</button>
+  <div class="live"><i></i> App → Node → Gateway → Supabase · auto-sync 30 s</div>
+</nav>
+
+<main>
+<div class="top">
+  <div><h2 id="pt">Overview</h2><p id="ps">Block progress and field verification</p></div>
+  <span class="flow">MPOB LoRa Dashboard</span>
+</div>
+
+<div id="dash" class="v on"></div>
+
+<div id="raw" class="v">
+  <div class="tl">
+    <select id="rawRole" style="width:190px"></select>
+    <input id="rawQ" placeholder="Search QR ID (e.g. HS-0001)" style="width:230px">
+    <button class="b" id="rawCsv">Export CSV</button>
+    <span id="rawInfo" class="h"></span>
+  </div>
+  <div class="card" style="padding:0;overflow:auto;max-height:72vh">
+    <table id="raw-table"></table>
+  </div>
+</div>
+
+<div id="ed" class="v">
+ <div id="tabs"></div>
+ <div class="tl">
+  <input id="q" placeholder="Search area (town, estate…)">
+  <button class="b" id="go">Search</button>
+  <button class="b" id="lk">Lock View</button>
+  <button class="b" id="snap">📷 Snapshot</button>
+  <button class="b p" id="tglView">📋 Bulk Data Table</button>
+  <select id="tl" style="width:170px">
+    <option value="osm">OpenStreetMap</option>
+    <option value="light">Light (CARTO)</option>
+    <option value="dark">Dark (CARTO)</option>
+    <option value="sat">Esri Satellite</option>
+    <option value="google_sat">Google Satellite</option>
+    <option value="google_hybrid">Google Hybrid</option>
+    <option value="none">No Map (Grid Only)</option>
+  </select>
+  <select id="sf" style="width:200px"></select>
+  <button class="b" id="sfZoom">🔎 Zoom to shown</button>
+  <button class="b" id="treeUp">⬆ Upload Block</button>
+  <button class="b" id="treeDown">⬇ Load Trees</button>
+  <span id="st" class="h"></span>
+ </div>
+ <div class="lg">
+  <span><i style="background:#2563eb"></i>Surveyor</span>
+  <span><i style="background:#facc15"></i>Harvester</span>
+  <span><i style="background:#16a34a"></i>Collector = Harvester</span>
+  <span><i style="background:#dc2626"></i>Collector ≠ Harvester</span>
+  <span><i style="background:#a855f7"></i>GPS rejected (QR matched, GPS too far / missing)</span>
+  <span><i style="background:#f3f4f6"></i>No data</span>
+ </div>
+
+ <div class="tl map-tools">
+  <button class="b on" data-m="sel">Select Tree</button>
+  <button class="b" data-m="add">➕ Add Tree</button>
+  <button class="b" data-m="row">Draw Line</button>
+  <button class="b" id="tglLines">Line: Visible</button>
+  <button class="b" id="tglBuf">⭕ GPS Zones: Off</button>
+  <span style="border-left:1px solid var(--bd);height:20px;margin:0 4px"></span>
+  <label>Trees/Row <input id="n" type="number" value="20"></label>
+  <label>Tree Gap (m) <input id="sp" type="number" value="9" step=".1"></label>
+  <button class="b p" id="cr">Create Base Row</button>
+  <label>Rows <input id="k" type="number" value="10"></label>
+  <label>Row Gap (m) <input id="rs" type="number" value="7.79" step=".01"></label>
+  <select id="sd"><option value="1">Left</option><option value="-1">Right</option></select>
+  <button class="b p" id="af">Auto-Fill Triangle</button>
+  <span class="sp">
+    <button class="b" id="ex">Export CSV</button>
+    <label class="b">Import CSV<input type="file" id="im" accept=".csv" hidden></label>
+    <button class="b" id="cl">Clear Block</button>
+  </span>
+ </div>
+
+ <div class="lay">
+   <div id="map"></div>
+   <aside class="card" id="side"></aside>
+ </div>
+
+ <div class="tbl-lay">
+   <table id="data-table"></table>
+ </div>
+</div>
+</main>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+const $=s=>document.querySelector(s);
+let S={blocks:[]}, cur=0, sel=[], mode='sel', pend=[], showLines=true, showBuf=false, isTableView=false;
+
+/* ---------- GPS validation settings ---------- */
+const CFG={tol:10, req:true};
+try{ Object.assign(CFG, JSON.parse(localStorage.getItem('palmcfg')||'{}')); }catch(e){}
+const saveCfg=()=>{ try{localStorage.setItem('palmcfg',JSON.stringify(CFG))}catch(e){} };
+const AC=new Map();            // per-tree assessment cache (cleared on any change)
+
+/* ---------- History & Undo ---------- */
+let hist=[];
+const pushHist=()=>{
+  hist.push(JSON.stringify(S)); if(hist.length>30) hist.shift();
+  $('#undoBtn').style.opacity='1'; $('#undoBtn').style.cursor='pointer';
+};
+$('#undoBtn').onclick=()=>{
+  if(!hist.length) return;
+  S=JSON.parse(hist.pop());
+  if(cur>=S.blocks.length) cur=Math.max(0,S.blocks.length-1);
+  save();
+  if($('#ed').classList.contains('on')) load(); else dash();
+  if(!hist.length){ $('#undoBtn').style.opacity='.5'; $('#undoBtn').style.cursor='not-allowed'; }
+  msg('Undo applied');
+};
+
+/* ---------- Storage ---------- */
+try{ S=JSON.parse(localStorage.getItem('palm')||'null')||S }catch(e){}
+const save=()=>{ AC.clear(); try{localStorage.setItem('palm',JSON.stringify(S))}catch(e){} };
+const blk=()=>S.blocks[cur], msg=t=>{$('#st').textContent=t};
+
+function newBlock(name){
+  if(S.blocks.length) pushHist();
+  S.blocks.push({name,code:'B'+(S.blocks.length+1),view:null,locked:false,trees:[],rows:0,last:null,reads:[],showLines:true});
+  cur=S.blocks.length-1; save();
+}
+if(!S.blocks.length) newBlock('Block A');
+
+$('#req').checked=CFG.req; $('#tol').value=CFG.tol;
+const cfgChanged=()=>{
+  CFG.req=$('#req').checked; CFG.tol=Math.max(1,+$('#tol').value||10); saveCfg(); AC.clear(); refreshAll();
+};
+$('#req').onchange=cfgChanged; $('#tol').onchange=cfgChanged;
+
+/* ---------- Navigation ---------- */
+document.querySelectorAll('.nv').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('.nv').forEach(x=>x.classList.toggle('on',x==b));
+  document.querySelectorAll('.v').forEach(v=>v.classList.toggle('on',v.id==b.dataset.v));
+  if(b.dataset.v=='ed'){ map.invalidateSize(); load(); }
+  else if(b.dataset.v=='raw') renderRaw();
+  else dash();
+});
+
+/* ---------- Map ---------- */
+const map=L.map('map',{preferCanvas:true,maxZoom:21}).setView([3.52,102.42],16);
+const BM={
+  osm:['https://tile.openstreetmap.org/{z}/{x}/{y}.png','© OpenStreetMap contributors',19],
+  sat:['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}','Tiles © Esri',18],
+  google_sat:['https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}','© Google Maps',20],
+  google_hybrid:['https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}','© Google Maps',20],
+  light:['https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png','© OpenStreetMap © CARTO',19],
+  dark:['https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png','© OpenStreetMap © CARTO',19]
+};
+let tiles=null;
+function setBase(k){
+  if(tiles) map.removeLayer(tiles); tiles=null; if(!BM[k]) return;
+  tiles=L.tileLayer(BM[k][0],{maxZoom:21,maxNativeZoom:BM[k][2]||18,attribution:BM[k][1]}).addTo(map);
+  tiles.bringToBack();
+  let w=0; tiles.on('tileerror',()=>{ if(!w++) msg('Tiles blocked or offline.'); });
+}
+const layer=L.layerGroup().addTo(map), pl=L.layerGroup().addTo(map), rl=L.layerGroup().addTo(map);
+$('#tl').onchange=e=>setBase(e.target.value); 
+map.on('zoomend',draw);
+
+/* Right-click drag selection */
+let isRightClicking=false, boxStart=null, selectionBox=null;
+map.getContainer().addEventListener('contextmenu',e=>e.preventDefault());
+map.on('mousedown',e=>{
+  if(e.originalEvent.button===2 && !isTableView){
+    isRightClicking=true; boxStart=e.latlng; map.dragging.disable();
+    if(selectionBox) map.removeLayer(selectionBox);
+    selectionBox=L.rectangle([boxStart,boxStart],{color:'#0ea5e9',weight:1,fillOpacity:.3}).addTo(map);
+  }
+});
+map.on('mousemove',e=>{ if(isRightClicking&&boxStart&&selectionBox) selectionBox.setBounds([boxStart,e.latlng]); });
+map.on('mouseup',e=>{
+  if(e.originalEvent.button===2 && isRightClicking){
+    isRightClicking=false; map.dragging.enable();
+    if(selectionBox){
+      const bounds=selectionBox.getBounds();
+      sel=blk().trees.filter(t=>bounds.contains([t.lat,t.lng])).map(t=>t.no);
+      map.removeLayer(selectionBox); selectionBox=null;
+      draw(); side(); msg(sel.length?`${sel.length} trees selected`:'Selection cleared');
+    }
+  }
+});
+
+function setLock(on){
+  ['dragging','scrollWheelZoom','doubleClickZoom','touchZoom','boxZoom','keyboard'].forEach(h=>map[h][on?'disable':'enable']());
+  $('.leaflet-control-zoom').style.display=on?'none':''; $('#lk').textContent=on?'Unlock View':'Lock View';
+  $('#lk').classList.toggle('on',on);
+}
+$('#lk').onclick=()=>{
+  const b=blk(); b.locked=!b.locked;
+  if(b.locked){ const c=map.getCenter(); b.view={c:[c.lat,c.lng],z:map.getZoom()}; }
+  save(); setLock(b.locked);
+};
+
+$('#go').onclick=async()=>{
+  const q=$('#q').value.trim(); if(!q) return;
+  if(blk().locked) return msg('Unlock view to search');
+  try{
+    const r=await(await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&q='+encodeURIComponent(q))).json();
+    if(!r[0]) return msg('Area not found');
+    const g=r[0].boundingbox.map(Number);
+    map.fitBounds([[g[0],g[2]],[g[1],g[3]]]); msg(r[0].display_name.slice(0,40));
+  }catch(e){ msg('Search requires internet access'); }
+};
+
+$('#snap').onclick=()=>{
+  msg('Capturing viewport...');
+  setTimeout(()=>alert('View at zoom level '+map.getZoom()+'. Grid layout ready for screenshot.'),200);
+};
+
+$('#tglView').onclick=()=>{
+  isTableView=!isTableView;
+  $('#tglView').textContent=isTableView?'🗺️ Return to Map':'📋 Bulk Data Table';
+  $('.lay').style.display=isTableView?'none':'grid';
+  $('.map-tools').style.display=isTableView?'none':'';
+  $('.tbl-lay').style.display=isTableView?'block':'none';
+  if(isTableView) renderTable(); else { map.invalidateSize(); draw(); side(); }
+};
+
+/* ============================================================
+   SUPABASE DATA + GPS/QR VALIDATION
+   A record counts for a tree ONLY if:
+     1) its qr_id matches the tree's QR / Tree ID / RFID
+     2) its GPS is within CFG.tol metres of the mapped tree
+   ============================================================ */
+const SB_URL='https://bjzlkfhiwmbcvtbpmnen.supabase.co', SB_KEY='sb_publishable_1nlPAlImP6EZHSCd0dXXig_gPxlPvFx';
+const sbH={apikey:SB_KEY,Authorization:'Bearer '+SB_KEY};
+let ALL=[], RF={}, BY={};     // RF = newest record per qr (radio health), BY = all records per qr (newest first)
+
+const up=s=>String(s??'').trim().toUpperCase();
+const roleOf=x=>up(x.user_type);
+const wsum=r=>[1,2,3,4,5,6,7,8,9,10].reduce((s,i)=>s+(+r['w'+i]||0),0);
+const sigQ=r=>!r?'–':(r.rssi>-90&&r.snr>5)?'🟢 Good':(r.rssi>-105&&r.snr>0)?'🟡 Fair':'🔴 Weak';
+const avgRF=f=>{ const v=Object.values(RF).map(r=>r[f]).filter(x=>x!=null);
+  return v.length?(v.reduce((a,b)=>a+b,0)/v.length).toFixed(1):'–'; };
+
+function hav(la1,lo1,la2,lo2){
+  const R=6371000,d=Math.PI/180,a=Math.sin((la2-la1)*d/2)**2+Math.cos(la1*d)*Math.cos(la2*d)*Math.sin((lo2-lo1)*d/2)**2;
+  return 2*R*Math.asin(Math.sqrt(a));
+}
+function recGPS(r){
+  const la=parseFloat(r.latitude), lo=parseFloat(r.longitude);
+  if(!isFinite(la)||!isFinite(lo)||(la===0&&lo===0)||Math.abs(la)>90||Math.abs(lo)>180) return null;
+  return [la,lo];
+}
+function recsFor(t){
+  const seen=new Set(), out=[];
+  [t.qr,t.id,t.rfid].filter(Boolean).forEach(k=>(BY[up(k)]||[]).forEach(r=>{ if(!seen.has(r)){seen.add(r);out.push(r);} }));
+  return out.sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
+}
+const STG={S:'#2563eb',H:'#facc15',G:'#16a34a',R:'#dc2626',X:'#a855f7'};
+
+function assess(t){
+  let a=AC.get(t); if(a) return a;
+  const recs=recsFor(t), valid={}, bad=[]; let latest=null;
+  recs.forEach(r=>{
+    const g=recGPS(r), d=g?hav(t.lat,t.lng,g[0],g[1]):null;
+    const ok=!CFG.req || (d!=null && d<=CFG.tol);
+    if(ok){ const u=roleOf(r); if(!valid[u]) valid[u]=r; if(!latest) latest=r; }
+    else bad.push({r,d,g});
+  });
+  let stage=null;
+  if(valid.C){
+    const ok=valid.H && +valid.H.bunch_count===+valid.C.bunch_count;
+    stage=ok?{k:'G',c:STG.G,l:'Collector = Harvester'}
+            :{k:'R',c:STG.R,l:'Collector ≠ Harvester'+(valid.H?'':' (no valid harvester record)')};
+  } else if(valid.H) stage={k:'H',c:STG.H,l:'Harvested'};
+  else if(valid.S)   stage={k:'S',c:STG.S,l:'Surveyed'};
+  else if(bad.length) stage={k:'X',c:STG.X,l:'GPS rejected'};
+  a={recs,valid,bad,latest,stage};
+  AC.set(t,a); return a;
+}
+const stageOf=t=>assess(t).stage;
+const rfOf=t=>assess(t).latest;
+const stageKey=t=>{ const s=stageOf(t); return s?s.k:'none'; };
+function gpsTxt(t){
+  const a=assess(t);
+  if(a.latest){ const g=recGPS(a.latest); return g?`<span class="ok">✔ ${hav(t.lat,t.lng,g[0],g[1]).toFixed(1)} m</span>`:'<span class="ok">✔</span>'; }
+  if(a.bad.length){ const b=a.bad[0]; return `<span class="no">✖ ${b.d==null?'no GPS':b.d.toFixed(0)+' m'}</span>`; }
+  return '–';
+}
+
+/* sidebar box */
+function rfBox(t){
+  const a=assess(t), r=a.latest; let h='';
+  if(a.bad.length){
+    h+=`<div style="background:var(--xbg);border:1px solid var(--xbd);padding:8px;border-radius:6px;margin-top:10px">
+      <b style="color:var(--x)">🟣 ${a.bad.length} upload(s) rejected</b><br>`+
+      a.bad.slice(0,3).map(b=>`<span class="h">${b.d==null?'No valid GPS in record':'GPS '+b.d.toFixed(1)+' m from tree'} (limit ${CFG.tol} m) · ${esc(ROLE_N[roleOf(b.r)]||b.r.user_type)} · ${new Date(b.r.created_at).toLocaleString()}</span>`).join('<br>')+`</div>`;
+  }
+  if(!r) return h+(a.bad.length?'':'<p class="h">No Supabase data for this tree yet (set its QR Code to match qr_id).</p>');
+  const s=a.stage, g=recGPS(r);
+  return h+`<div style="background:var(--soft);padding:8px;border-radius:6px;margin-top:10px">
+    <b>Latest verified upload</b> ${sigQ(r)}
+    ${s?`<br><span style="color:${s.c==='#facc15'?'#ca8a04':s.c}">● ${s.l}</span>`:''}<br>
+    GPS check: ${gpsTxt(t)} ${g?'':''}<br>
+    Bunches: <b>${r.bunch_count}</b> · Weight: <b>${wsum(r).toFixed(1)}</b><br>
+    RSSI: <b>${r.rssi} dBm</b> · SNR: <b>${r.snr} dB</b><br>
+    Freq error: ${r.freq_err} Hz<br>
+    <span class="h">${new Date(r.created_at).toLocaleString()}</span></div>`;
+}
+
+/* stage filter */
+let stageFilter='all';
+const passF=t=>stageFilter==='all'||stageKey(t)===stageFilter;
+const SF_OPTS=[['all','All trees'],['X','🟣 GPS rejected'],['R','🔴 Mismatch'],['G','🟢 Matched'],['H','🟡 Harvested'],['S','🔵 Surveyed'],['none','⚪ No data']];
+function sfRefresh(){
+  const el=$('#sf'); if(!el) return;
+  const c={all:0,X:0,R:0,G:0,H:0,S:0,none:0};
+  blk().trees.forEach(t=>{ c.all++; c[stageKey(t)]++; });
+  el.innerHTML=SF_OPTS.map(([v,l])=>`<option value="${v}">${l} (${c[v]})</option>`).join('');
+  el.value=stageFilter;
+}
+$('#sf').onchange=e=>{ stageFilter=e.target.value; draw(); if(isTableView) renderTable(); };
+$('#sfZoom').onclick=()=>{
+  const b=blk(); if(b.locked) return msg('Unlock view to zoom');
+  const p=b.trees.filter(passF); if(!p.length) return msg('No trees match this filter');
+  map.fitBounds(L.latLngBounds(p.map(t=>[t.lat,t.lng])),{padding:[40,40],maxZoom:20});
+  msg(`${p.length} trees shown`);
+};
+
+/* ---------- Bulk table ---------- */
+function renderTable(){
+  sfRefresh();
+  const b=blk(), sorted=b.trees.filter(passF).sort((a,c)=>a.row-c.row||a.pos-c.pos);
+  let h=`<tr><th>Tree No</th><th>Row</th><th>Col</th><th>Tree ID</th><th>RFID Card</th><th>QR Code</th>
+    <th>Status</th><th>GPS check</th><th>Bunches</th><th>Weight</th><th>RSSI</th><th>SNR</th><th>Signal</th></tr>`;
+  if(!sorted.length) h+=`<tr><td colspan="13" style="text-align:center;padding:20px;color:#666">No trees match this filter.</td></tr>`;
+  sorted.forEach(t=>{
+    const r=rfOf(t), s=stageOf(t);
+    h+=`<tr>
+      <td><b>#${t.no}</b></td><td>${t.row}</td><td>${t.pos}</td>
+      <td><input data-no="${t.no}" data-f="id" value="${esc(t.id)}" placeholder="Enter ID..."></td>
+      <td><input data-no="${t.no}" data-f="rfid" value="${esc(t.rfid)}" placeholder="Scan RFID..."></td>
+      <td><input data-no="${t.no}" data-f="qr" value="${esc(t.qr)}" placeholder="HS-0001"></td>
+      <td>${s?`<span style="color:${s.c==='#facc15'?'#ca8a04':s.c}">● ${s.l}</span>`:'–'}</td>
+      <td>${gpsTxt(t)}</td>
+      <td>${r?r.bunch_count:'–'}</td><td>${r?wsum(r).toFixed(1):'–'}</td>
+      <td>${r?r.rssi:'–'}</td><td>${r?r.snr:'–'}</td><td>${sigQ(r)}</td>
+    </tr>`;
+  });
+  $('#data-table').innerHTML=h;
+}
+$('#data-table').addEventListener('change',e=>{
+  if(e.target.tagName==='INPUT'){
+    pushHist();
+    const no=+e.target.dataset.no, f=e.target.dataset.f, val=e.target.value.trim();
+    const t=blk().trees.find(x=>x.no===no);
+    if(t){ t[f]=f==='rfid'?val.toUpperCase():val; save(); msg(`Auto-saved Tree #${no} ${f.toUpperCase()}`); }
+  }
+});
+
+/* ---------- Load block ---------- */
+function load(){
+  const b=blk(); setLock(false); sel=[]; pend=[]; pl.clearLayers();
+  showLines=b.showLines!==undefined?b.showLines:true; updateLineBtn();
+  if(b.view) map.setView(b.view.c,b.view.z,{animate:false});
+  else if(b.trees.length) map.fitBounds(L.latLngBounds(b.trees.map(t=>[t.lat,t.lng])));
+  if(b.locked) setLock(true);
+  tabs();
+  if(isTableView) renderTable(); else { draw(); side(); }
+}
+function tabs(){
+  $('#tabs').innerHTML=S.blocks.map((b,i)=>`<button class="tb ${i==cur?'on':''}" data-i="${i}">${esc(b.name)}</button>`).join('')+'<button class="tb" data-i="new">＋ New Block</button>';
+}
+$('#tabs').onclick=e=>{
+  const i=e.target.dataset.i; if(i==null) return;
+  if(i=='new'){
+    const n=prompt('Block name','Block '+String.fromCharCode(65+S.blocks.length));
+    if(!n) return; newBlock(n);
+  } else cur=+i;
+  load();
+};
+document.querySelectorAll('[data-m]').forEach(b=>b.onclick=()=>{
+  mode=b.dataset.m;
+  document.querySelectorAll('[data-m]').forEach(x=>x.classList.toggle('on',x==b));
+  $('#map').style.cursor=(mode=='row'||mode=='add')?'crosshair':'';
+  pend=[]; pl.clearLayers();
+  msg(mode=='row'?'Click first tree, then last tree of a line':mode=='add'?'Click map to add a single tree':'');
+});
+
+function updateLineBtn(){
+  $('#tglLines').textContent=showLines?'Line: Visible':'Line: Hidden';
+  $('#tglLines').classList.toggle('on',showLines);
+}
+$('#tglLines').onclick=()=>{ showLines=!showLines; blk().showLines=showLines; save(); updateLineBtn(); draw(); };
+$('#tglBuf').onclick=()=>{
+  showBuf=!showBuf;
+  $('#tglBuf').textContent=showBuf?'⭕ GPS Zones: On':'⭕ GPS Zones: Off';
+  $('#tglBuf').classList.toggle('on',showBuf); draw();
+};
+$('#sp').oninput=e=>{ $('#rs').value=(+e.target.value*0.866025).toFixed(2); };
+
+/* ---------- Draw ---------- */
+function draw(){
+  sfRefresh();
+  if(isTableView) return;
+  layer.clearLayers(); rl.clearLayers();
+  const b=blk(), z=map.getZoom(), rows={};
+  b.trees.forEach(t=>(rows[t.row]=rows[t.row]||[]).push(t));
+  if(showLines) Object.values(rows).forEach(r=>{
+    L.polyline(r.map(t=>[t.lat,t.lng]),{color:'#f5c400',weight:1.5,opacity:.7,interactive:false}).addTo(layer);
+  });
+  b.trees.forEach(t=>{
+    const s=sel.includes(t.no), on=passF(t), st=stageOf(t);
+    if(showBuf&&on) L.circle([t.lat,t.lng],{radius:CFG.tol,color:s?'#0ea5e9':'#22c55e',weight:1,fillColor:s?'#0ea5e9':'#22c55e',fillOpacity:.15,interactive:false}).addTo(layer);
+    const m=L.circleMarker([t.lat,t.lng],{
+      radius:on?(z>=20?8:z>=19?5:3.5):2.5,
+      color:!on?'#999':s?'#000':st?'#111':t.id?'#14532d':'#b45309',
+      weight:s?3:1.5, opacity:on?1:.25,
+      fillColor:st?st.c:'#f3f4f6', fillOpacity:on?.95:.12,
+      interactive:on, bubblingMouseEvents:false
+    }).addTo(layer);
+    if(on){
+      m.on('click',()=>{ if(mode=='sel'||mode=='add'){ sel=[t.no]; draw(); side(); } });
+      if(st) m.bindTooltip(`#${t.no} · ${st.l}`,{direction:'top'});
+      if(z>=20) m.bindTooltip(String(t.no),{permanent:true,direction:'center',className:'nl'});
+    }
+  });
+  /* show where the uploads claimed to be for the selected tree */
+  if(sel.length===1){
+    const t=b.trees.find(x=>x.no===sel[0]);
+    if(t){
+      const a=assess(t);
+      a.recs.slice(0,10).forEach(r=>{
+        const g=recGPS(r); if(!g) return;
+        const d=hav(t.lat,t.lng,g[0],g[1]), ok=!CFG.req||d<=CFG.tol;
+        L.polyline([[t.lat,t.lng],g],{color:ok?'#16a34a':'#a855f7',weight:1,dashArray:'3 4',interactive:false}).addTo(rl);
+        L.circleMarker(g,{radius:4,color:ok?'#16a34a':'#a855f7',fillColor:'#fff',fillOpacity:1,weight:2})
+          .bindTooltip(`${ROLE_N[roleOf(r)]||r.user_type} · ${d.toFixed(1)} m ${ok?'✔':'✖'}`).addTo(rl);
+      });
+    }
+  }
+}
+
+/* ---------- Map click ---------- */
+map.on('click',e=>{
+  if(isTableView) return;
+  const b=blk();
+  if(mode=='add'){
+    pushHist();
+    const nextNo=b.trees.length?Math.max(...b.trees.map(t=>t.no))+1:1, maxRow=b.rows||1;
+    b.trees.push({no:nextNo,row:maxRow,pos:b.trees.filter(t=>t.row==maxRow).length+1,lat:e.latlng.lat,lng:e.latlng.lng,id:'',rfid:'',qr:''});
+    sel=[nextNo]; save(); draw(); side(); msg(`Added Tree #${nextNo}`); return;
+  }
+  if(mode!='row') return;
+  if(pend.length>=2){ pend=[]; pl.clearLayers(); }
+  pend.push(e.latlng); pl.clearLayers();
+  pend.forEach(p=>L.circleMarker(p,{radius:6,color:'#e11d48',fillOpacity:1}).addTo(pl));
+  if(pend.length==2){
+    L.polyline(pend,{color:'#e11d48',dashArray:'4 4'}).addTo(pl);
+    const d=map.distance(pend[0],pend[1]);
+    $('#n').value=Math.round(d/+$('#sp').value)+1;
+    msg(`Line is ${d.toFixed(1)} m – check tree count, click Create Base Row`);
+  }
+});
+
+function mkRow(A,B,n){
+  const b=blk(), r=++b.rows;
+  for(let i=0;i<n;i++){
+    const f=n>1?i/(n-1):0;
+    b.trees.push({no:b.trees.length+1,row:r,pos:i+1,lat:A.lat+(B.lat-A.lat)*f,lng:A.lng+(B.lng-A.lng)*f,id:'',rfid:'',qr:''});
+  }
+}
+$('#cr').onclick=()=>{
+  if(pend.length<2) return msg('Draw line first');
+  pushHist();
+  const n=Math.max(2,+$('#n').value|0), b=blk();
+  b.last={A:{lat:pend[0].lat,lng:pend[0].lng},B:{lat:pend[1].lat,lng:pend[1].lng},n};
+  mkRow(b.last.A,b.last.B,n); pend=[]; pl.clearLayers(); save(); draw(); side();
+  msg(n+' trees added in base row');
+};
+$('#af').onclick=()=>{
+  const b=blk(), l=b.last;
+  if(!l) return msg('Create a first base row before auto-fill');
+  pushHist();
+  const m=111320, cl=Math.cos(l.A.lat*Math.PI/180), dx=(l.B.lng-l.A.lng)*m*cl, dy=(l.B.lat-l.A.lat)*m, len=Math.hypot(dx,dy), ux=dx/len, uy=dy/len,
+  sp=len/(l.n-1), sd=+$('#sd').value, rs=+$('#rs').value;
+  for(let j=1;j<=+$('#k').value;j++){
+    const o=j%2?sp/2:0, x=-uy*sd*rs*j+ux*o, y=ux*sd*rs*j+uy*o, sh=p=>({lat:p.lat+y/m,lng:p.lng+x/(m*cl)});
+    mkRow(sh(l.A),sh(l.B),l.n);
+  }
+  save(); draw(); side(); msg('Triangle rows auto-filled');
+};
+$('#cl').onclick=()=>{
+  if(!confirm('Delete all trees in this block?')) return;
+  pushHist();
+  Object.assign(blk(),{trees:[],rows:0,last:null,reads:[]});
+  sel=[]; save();
+  if(isTableView) renderTable(); else { draw(); side(); }
+};
+
+/* ---------- Sidebar ---------- */
+function side(){
+  if(isTableView) return;
+  const b=blk(), el=$('#side');
+  if(sel.length===0){
+    const c=sm(b,'count'), k=sm(b,'collect'), h=sm(b,'harvest');
+    let ver=0, rej=0; b.trees.forEach(t=>{ const k=stageKey(t); if(k==='X') rej++; else if(k!=='none') ver++; });
+    el.innerHTML=`<h3>${esc(b.name)}</h3>
+    <p>${b.trees.length} trees · ${b.rows} rows · ${b.trees.filter(x=>x.id).length} assigned Tree IDs</p>
+    <div style="background:var(--okbg);padding:8px;border-radius:6px;margin-bottom:8px">
+      <b>Field verification (QR + GPS ≤ ${CFG.tol} m):</b><br>
+      ✔ Verified: <b>${ver}</b> &nbsp; 🟣 GPS rejected: <b>${rej}</b>
+    </div>
+    <div style="background:var(--soft);padding:8px;border-radius:6px;margin-bottom:10px">
+      <b>Manual Reading Summary:</b><br>
+      Counted: <b>${c}</b> | Harvested: <b>${h}</b> | Collected: <b>${k}</b><br>
+      Ratio Collected/Counted: <b>${c?Math.round(k/c*100):0}%</b>
+    </div>
+    <button class="b p" id="getGpsGlobal" style="width:100%;justify-content:center;margin-bottom:10px;padding:8px">📍 Snap to Nearest Tree (GPS)</button>
+    <p class="h">
+      • <b>Triangle Grid:</b> Tree Gap 9 m → Row Gap 7.79 m.<br>
+      • <b>Multi-select:</b> Right-click &amp; drag on the map.<br>
+      • <b>Data entry:</b> use the Bulk Data Table to type or scan RFIDs.<br>
+      • <b>Colour rule:</b> a tree only changes colour when the upload's QR matches <u>and</u> its GPS is within the tolerance (header).
+    </p>`;
+    $('#getGpsGlobal').onclick=handleGpsSnap; return;
+  }
+  if(sel.length>1){
+    el.innerHTML=`<h3>${sel.length} Trees Selected</h3>
+    <p class="h">Bulk-delete below, or press Delete/Backspace.</p>
+    <button class="b" id="dtBulk" style="width:100%;justify-content:center;color:red;border-color:red;margin-top:10px">Delete ${sel.length} Trees</button>`;
+    $('#dtBulk').onclick=()=>{ pushHist(); b.trees=b.trees.filter(x=>!sel.includes(x.no)); sel=[]; save(); draw(); side(); };
+    return;
+  }
+  const t=b.trees.find(x=>x.no==sel[0]);
+  if(!t){ sel=[]; return side(); }
+  const rd=b.reads.filter(r=>r.no==t.no).slice(-4).map(r=>r.role+' '+r.n).join(', ')||'none';
+  el.innerHTML=`<h3>Tree #${t.no}</h3>
+  <p class="h">Row ${t.row}, Column ${t.pos}</p>
+  <button class="b" id="getGpsLocal" style="margin-bottom:12px;width:100%;justify-content:center">📍 Snap to My Location (GPS)</button>
+  <label>Tree ID <input id="eid" value="${esc(t.id)}" placeholder="${b.code}-${String(t.no).padStart(4,'0')}"></label>
+  <label>RFID Card <input id="erf" value="${esc(t.rfid)}"></label>
+  <label>QR Code <input id="eqr" value="${esc(t.qr)}" placeholder="HS-0001"></label>
+  <div class="r">
+    <button class="b p" id="sv">Save</button>
+    <button class="b" id="sn">Save &amp; Next #</button>
+    <button class="b" id="dt">Delete</button>
+  </div>
+  <h4 style="margin-top:12px;margin-bottom:4px">Add Reading (Bunches)</h4>
+  <div class="r">
+    <select id="rr" style="width:110px"><option value="count">Counted</option><option value="harvest">Harvested</option><option value="collect">Collected</option></select>
+    <input id="rn" type="number" value="1" min="0" style="width:60px">
+    <button class="b" id="ar">Add</button>
+  </div>
+  <p class="h">Recent: ${rd}</p>${rfBox(t)}`;
+  $('#getGpsLocal').onclick=handleGpsSnap;
+  const sv=nx=>{
+    pushHist();
+    t.id=$('#eid').value.trim(); t.rfid=$('#erf').value.trim().toUpperCase(); t.qr=$('#eqr').value.trim();
+    save();
+    if(nx){ const n=b.trees.find(x=>x.no==t.no+1); if(n){ sel=[n.no]; if(!b.locked) map.panInside([n.lat,n.lng],{padding:[80,80]}); } }
+    draw(); side();
+  };
+  $('#sv').onclick=()=>sv(0); $('#sn').onclick=()=>sv(1);
+  $('#dt').onclick=()=>{ pushHist(); b.trees=b.trees.filter(x=>x!=t); sel=[]; save(); draw(); side(); };
+  $('#ar').onclick=()=>{ pushHist(); b.reads.push({no:t.no,role:$('#rr').value,n:+$('#rn').value||0,ts:Date.now()}); save(); side(); msg('Bunch reading recorded!'); };
+}
+
+/* ---------- Keyboard ---------- */
+document.addEventListener('keydown',e=>{
+  if(['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName)) return;
+  if((e.ctrlKey||e.metaKey)&&(e.key==='z'||e.key==='Z')){ e.preventDefault(); $('#undoBtn').click(); return; }
+  if((e.key==='Delete'||e.key==='Backspace')&&sel.length>0&&!isTableView){
+    pushHist(); const b=blk(); b.trees=b.trees.filter(x=>!sel.includes(x.no)); sel=[]; save(); draw(); side(); msg('Trees deleted via keyboard');
+  }
+});
+
+/* ---------- Phone GPS snap ---------- */
+function handleGpsSnap(){
+  if(!navigator.geolocation) return alert('Geolocation not supported');
+  msg('Fetching GPS position...');
+  navigator.geolocation.getCurrentPosition(pos=>{
+    const u=L.latLng(pos.coords.latitude,pos.coords.longitude); let near=null,min=Infinity;
+    blk().trees.forEach(tr=>{ const d=map.distance(u,L.latLng(tr.lat,tr.lng)); if(d<min){min=d;near=tr;} });
+    if(near&&min<=CFG.tol){
+      sel=[near.no]; map.panTo([near.lat,near.lng]); draw(); side(); msg(`Snapped to Tree #${near.no} (${min.toFixed(1)}m away)`);
+    } else if(near){ alert(`You are ${min.toFixed(1)}m from the nearest tree. Get within ${CFG.tol}m to snap.`); msg('Outside tree GPS zone.'); }
+    else msg('No trees found in this block.');
+  },err=>alert('Unable to retrieve GPS: '+err.message),{enableHighAccuracy:true});
+}
+
+/* ---------- CSV / project ---------- */
+const dl=(n,t)=>{ const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([t])); a.download=n; a.click(); };
+$('#ex').onclick=()=>{
+  const b=blk();
+  dl(b.name+'-trees.csv','no,row,pos,lat,lng,tree_id,rfid,qr\n'+b.trees.map(t=>[t.no,t.row,t.pos,t.lat,t.lng,t.id,t.rfid,t.qr].join(',')).join('\n'));
+};
+$('#im').onchange=e=>{
+  const f=e.target.files[0]; if(!f) return;
+  const rd=new FileReader();
+  rd.onload=()=>{
+    pushHist();
+    const rows=rd.result.trim().split(/\r?\n/).map(l=>l.split(',').map(c=>c.replace(/^"|"$/g,'').trim())),
+      h=rows.shift().map(x=>x.toLowerCase()), ix=n=>h.indexOf(n), ni=h.findIndex(x=>x=='no'||x=='tree_no'), b=blk();
+    if(ni<0) return msg('CSV requires a "no" or "tree_no" column');
+    let updated=0, added=0;
+    rows.forEach(r=>{
+      const no=+r[ni]; if(!no) return;
+      let t=b.trees.find(x=>x.no==no);
+      if(!t&&ix('lat')>-1&&ix('lng')>-1){
+        t={no,row:+r[ix('row')]||1,pos:+r[ix('pos')]||no,lat:+r[ix('lat')],lng:+r[ix('lng')],id:'',rfid:'',qr:''};
+        b.trees.push(t); b.rows=Math.max(b.rows,t.row); added++;
+      }
+      if(!t) return; updated++;
+      [['tree_id','id'],['rfid','rfid'],['qr','qr']].forEach(([c,k])=>{ const j=ix(c); if(j>-1&&r[j]) t[k]=r[j]; });
+    });
+    save(); if(isTableView) renderTable(); else { draw(); side(); } msg(`CSV: ${updated} assigned (${added} created)`);
+  };
+  rd.readAsText(f); e.target.value='';
+};
+$('#ep').onclick=()=>dl('mpob-lora-project.json',JSON.stringify(S));
+$('#ip').onchange=e=>{
+  const f=e.target.files[0]; if(!f) return;
+  const rd=new FileReader();
+  rd.onload=()=>{ try{ pushHist(); S=JSON.parse(rd.result); cur=0; save(); dash(); }catch(x){ alert('Invalid project file'); } };
+  rd.readAsText(f);
+};
+
+/* ---------- Raw Data tab ---------- */
+let rawRole='all', rawQ='';
+const ROLE_N={S:'🔵 Surveyor',H:'🟡 Harvester',C:'🟢 Collector'};
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const RAW_COLS=['created_at','user_type','qr_id','gps_source','latitude','longitude','bunch_count','w1','w2','w3','w4','w5','w6','w7','w8','w9','w10','device_timestamp','rssi','snr','freq_err'];
+const rawRows=()=>ALL.filter(x=>(rawRole==='all'||roleOf(x)===rawRole)&&(!rawQ||String(x.qr_id).toLowerCase().includes(rawQ)));
+
+function renderRaw(){
+  const c={all:ALL.length,S:0,H:0,C:0};
+  ALL.forEach(x=>{ const u=roleOf(x); if(c[u]!=null) c[u]++; });
+  const s=$('#rawRole');
+  s.innerHTML=[['all','All roles'],['S',ROLE_N.S],['H',ROLE_N.H],['C',ROLE_N.C]].map(([v,l])=>`<option value="${v}">${l} (${c[v]})</option>`).join('');
+  s.value=rawRole;
+  /* map qr -> tree for GPS check */
+  const TI=new Map();
+  S.blocks.forEach(b=>b.trees.forEach(t=>[t.qr,t.id,t.rfid].filter(Boolean).forEach(k=>{ if(!TI.has(up(k))) TI.set(up(k),t); })));
+  const rows=rawRows(), shown=rows.slice(0,1000);
+  $('#rawInfo').textContent=`Showing ${shown.length} of ${rows.length} rows`+(rows.length>1000?' (first 1000 – narrow with filters)':'');
+  let h=`<tr><th>Time</th><th>Role</th><th>QR ID</th><th>GPS check</th><th>GPS</th><th>Lat</th><th>Lng</th><th>Bunches</th>
+    ${[1,2,3,4,5,6,7,8,9,10].map(i=>`<th>W${i}</th>`).join('')}<th>Device Time</th><th>RSSI</th><th>SNR</th><th>Freq Err</th></tr>`;
+  if(!shown.length) h+=`<tr><td colspan="22" style="text-align:center;padding:20px;color:#666">No rows match.</td></tr>`;
+  shown.forEach(x=>{
+    const t=TI.get(up(x.qr_id)), g=recGPS(x); let chk='<span class="h">tree not mapped</span>';
+    if(t){ if(!g) chk='<span class="no">✖ no GPS</span>'; else { const d=hav(t.lat,t.lng,g[0],g[1]); chk=d<=CFG.tol?`<span class="ok">✔ ${d.toFixed(1)} m</span>`:`<span class="no">✖ ${d.toFixed(0)} m</span>`; } }
+    h+=`<tr>
+      <td>${new Date(x.created_at).toLocaleString()}</td><td>${ROLE_N[roleOf(x)]||esc(x.user_type)}</td>
+      <td><b>${esc(x.qr_id)}</b></td><td>${chk}</td><td>${esc(x.gps_source)}</td>
+      <td>${x.latitude}</td><td>${x.longitude}</td><td>${x.bunch_count}</td>
+      ${[1,2,3,4,5,6,7,8,9,10].map(i=>`<td>${x['w'+i]}</td>`).join('')}
+      <td>${x.device_timestamp?new Date(x.device_timestamp*1000).toLocaleString():'–'}</td>
+      <td>${x.rssi??'–'}</td><td>${x.snr??'–'}</td><td>${x.freq_err??'–'}</td></tr>`;
+  });
+  $('#raw-table').innerHTML=h;
+}
+$('#rawRole').onchange=e=>{ rawRole=e.target.value; renderRaw(); };
+$('#rawQ').oninput=e=>{ rawQ=e.target.value.trim().toLowerCase(); renderRaw(); };
+$('#rawCsv').onclick=()=>{
+  const q=v=>'"'+String(v??'').replace(/"/g,'""')+'"';
+  dl('harvest_data'+(rawRole==='all'?'':'-'+rawRole)+'.csv',RAW_COLS.join(',')+'\n'+rawRows().map(x=>RAW_COLS.map(k=>q(x[k])).join(',')).join('\n'));
+};
+
+/* ---------- Tree master data <-> Supabase ---------- */
+async function pushTrees(list){
+  const b=blk();
+  const rows=list.map(t=>({block_name:b.name,tree_no:t.no,row_no:t.row,pos:t.pos,lat:t.lat,lng:t.lng,tree_id:t.id||null,rfid:t.rfid||null,qr:t.qr||null,updated_at:new Date().toISOString()}));
+  try{
+    for(let i=0;i<rows.length;i+=500){
+      const r=await fetch(`${SB_URL}/rest/v1/palm_trees?on_conflict=block_name,tree_no`,{method:'POST',
+        headers:{...sbH,'Content-Type':'application/json',Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(rows.slice(i,i+500))});
+      if(!r.ok) throw new Error('HTTP '+r.status);
+    }
+    msg(`☁ ${rows.length} tree(s) saved to Supabase`);
+  }catch(e){ msg('Supabase save failed: '+e.message); }
+}
+async function pullTrees(){
+  if(!confirm('Load trees from Supabase? Tree ID / RFID / QR in this browser will be overwritten by the Supabase values.')) return;
+  try{
+    let all=[], off=0;
+    while(true){
+      const r=await fetch(`${SB_URL}/rest/v1/palm_trees?select=*&order=block_name,tree_no&limit=1000&offset=${off}`,{headers:sbH});
+      if(!r.ok) throw new Error('HTTP '+r.status);
+      const part=await r.json(); all=all.concat(part);
+      if(part.length<1000) break; off+=1000;
+    }
+    pushHist();
+    all.forEach(x=>{
+      let b=S.blocks.find(k=>k.name===x.block_name);
+      if(!b){ b={name:x.block_name,code:'B'+(S.blocks.length+1),view:null,locked:false,trees:[],rows:0,last:null,reads:[],showLines:true}; S.blocks.push(b); }
+      let t=b.trees.find(k=>k.no===x.tree_no);
+      if(!t){ t={no:x.tree_no,row:x.row_no||1,pos:x.pos||x.tree_no,lat:x.lat,lng:x.lng,id:'',rfid:'',qr:''}; b.trees.push(t); b.rows=Math.max(b.rows,t.row); }
+      t.id=x.tree_id||''; t.rfid=x.rfid||''; t.qr=x.qr||'';
+    });
+    save(); msg(`Loaded ${all.length} trees from Supabase`); load(); dash();
+  }catch(e){ msg('Load failed: '+e.message); }
+}
+$('#treeUp').onclick=()=>{ if(confirm('Upload all trees of this block to Supabase?')) pushTrees(blk().trees); };
+$('#treeDown').onclick=pullTrees;
+
+/* ---------- Sync harvest_data ---------- */
+async function syncSupabase(){
+  msg('Syncing with Supabase…');
+  try{
+    const r=await fetch(`${SB_URL}/rest/v1/harvest_data?select=*&order=created_at.desc&limit=5000`,{headers:sbH});
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    RF={}; BY={};
+    ALL=await r.json();
+    ALL.forEach(x=>{
+      const k=up(x.qr_id); if(!k) return;
+      if(!RF[k]) RF[k]=x;
+      (BY[k]=BY[k]||[]).push(x);
+    });
+    AC.clear();
+    msg(`Synced ${ALL.length} records / ${Object.keys(RF).length} QR IDs`);
+    refreshAll();
+  }catch(e){ msg('Supabase sync failed: '+e.message); }
+}
+let pendingRefresh=false;
+const inTableEdit=()=>{ const a=document.activeElement; return !!(a&&a.closest&&a.closest('#data-table')); };
+function refreshAll(){
+  dash();
+  if($('#raw').classList.contains('on')) renderRaw();
+  if($('#ed').classList.contains('on')){
+    if(isTableView){ if(inTableEdit()) pendingRefresh=true; else renderTable(); }
+    else { draw(); side(); }
+  }
+}
+$('#data-table').addEventListener('focusout',()=>setTimeout(()=>{
+  if(pendingRefresh&&!inTableEdit()){ pendingRefresh=false; renderTable(); }
+},150));
+$('#sbSync').onclick=syncSupabase;
+
+/* ---------- Dashboard ---------- */
+function sm(b,r){ return b.reads.filter(x=>x.role==r).reduce((s,x)=>s+x.n,0); }
+function dash(){
+  const bl=S.blocks, T=r=>bl.reduce((s,b)=>s+sm(b,r),0), c=T('count'), k=T('collect'), h=T('harvest');
+  let ver=0, rej=0, vb=0;
+  bl.forEach(b=>b.trees.forEach(t=>{ const a=assess(t), s=a.stage; if(!s) return; if(s.k==='X') rej++; else { ver++; vb+=+(a.latest&&a.latest.bunch_count)||0; } }));
+  const kp=(l,v,c='')=>`<div class="card ${c}"><b>${v}</b><span>${l}</span></div>`;
+  $('#dash').innerHTML=`
+    <div class="kp">
+      ${kp('Total Blocks',bl.length)}
+      ${kp('Trees Mapped',bl.reduce((s,b)=>s+b.trees.length,0))}
+      ${kp('Trees Verified (QR + GPS)',ver,'kv')}
+      ${kp('🟣 GPS Rejected Trees',rej,'kx')}
+      ${kp('Bunches (verified latest)',vb)}
+      ${kp('Bunches Counted',c)}
+      ${kp('Bunches Harvested',h)}
+      ${kp('Bunches Collected',k)}
+      ${kp('QR IDs Reporting (RF)',Object.keys(RF).length)}
+      ${kp('Avg RSSI (dBm)',avgRF('rssi'))}
+      ${kp('Avg SNR (dB)',avgRF('snr'))}
+    </div>
+    <div class="bl">${bl.map((b,i)=>{
+      const c=sm(b,'count'), k=sm(b,'collect'), h=sm(b,'harvest'), a=b.trees.filter(t=>t.id).length,
+        p=c?Math.min(100,k/c*100):0, q=b.trees.length?a/b.trees.length*100:0;
+      let v=0,x=0; b.trees.forEach(t=>{ const kk=stageKey(t); if(kk==='X') x++; else if(kk!=='none') v++; });
+      return `<div class="card">
+        <h3 style="margin:0 0 6px">${esc(b.name)}</h3>
+        <div class="h">${b.trees.length} trees · ${b.rows} rows</div>
+        <div style="margin-top:8px" class="h">Tree IDs assigned: <b>${a}/${b.trees.length}</b></div>
+        <div class="pb"><i style="width:${q}%;background:#6b8f71"></i></div>
+        <div class="h">Verified in field: <b>${v}</b> · 🟣 GPS rejected: <b>${x}</b></div>
+        <div style="margin-top:6px">Counted: <b>${c}</b> · Harvested: <b>${h}</b> · Collected: <b>${k}</b></div>
+        <div class="h">Collected vs Counted: <b>${c?Math.round(p)+'%':'–'}</b></div>
+        <div class="pb"><i style="width:${p}%"></i></div>
+        <button class="b" data-o="${i}">Open Map Editor</button>
+      </div>`;
+    }).join('')}</div>`;
+  document.querySelectorAll('[data-o]').forEach(x=>x.onclick=()=>{ cur=+x.dataset.o; document.querySelector('[data-v=ed]').click(); });
+}
+
+/* ---------- Theme (light / dark) ---------- */
+function setTheme(t,init){
+  document.documentElement.dataset.theme=t;
+  try{localStorage.setItem('mpobtheme',t)}catch(e){}
+  $('#themeBtn').innerHTML=t==='dark'?'☀ Light mode':'🌙 Dark mode';
+  const c=$('#tl').value;
+  if(init||c==='light'||c==='dark'||c==='osm'){ $('#tl').value=t==='dark'?'dark':'light'; setBase($('#tl').value); }
+}
+let _th; try{_th=localStorage.getItem('mpobtheme')}catch(e){}
+if(!_th) _th=(window.matchMedia&&matchMedia('(prefers-color-scheme:dark)').matches)?'dark':'light';
+setTheme(_th,true);
+$('#themeBtn').onclick=()=>setTheme(document.documentElement.dataset.theme==='dark'?'light':'dark');
+document.querySelectorAll('.nv').forEach(b=>b.addEventListener('click',()=>{ $('#pt').textContent=b.dataset.t; $('#ps').textContent=b.dataset.s; }));
+
+dash();
+syncSupabase();
+setInterval(syncSupabase,30000);
+</script>
+</body>
+</html>
