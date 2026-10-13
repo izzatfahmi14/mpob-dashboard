@@ -770,8 +770,8 @@ async function pushTrees(list){
     msg(`☁ ${rows.length} tree(s) saved to Supabase`);
   }catch(e){ msg('Supabase save failed: '+e.message); }
 }
-async function pullTrees(){
-  if(!confirm('Load trees from Supabase? Tree ID / RFID / QR in this browser will be overwritten by the Supabase values.')) return;
+async function pullTrees(auto){
+  if(!auto&&!confirm('Load trees from Supabase? Tree ID / RFID / QR in this browser will be overwritten by the Supabase values.')) return;
   try{
     let all=[], off=0;
     while(true){
@@ -780,7 +780,10 @@ async function pullTrees(){
       const part=await r.json(); all=all.concat(part);
       if(part.length<1000) break; off+=1000;
     }
-    pushHist();
+    if(auto&&!all.length) return;
+    if(auto){ /* drop the untouched default empty block */
+      S.blocks=S.blocks.filter(b=>b.trees.length||b.reads.length||b.name!=='Block A'); cur=0;
+    } else pushHist();
     all.forEach(x=>{
       let b=S.blocks.find(k=>k.name===x.block_name);
       if(!b){ b={name:x.block_name,code:'B'+(S.blocks.length+1),view:null,locked:false,trees:[],rows:0,last:null,reads:[],showLines:true}; S.blocks.push(b); }
@@ -788,11 +791,13 @@ async function pullTrees(){
       if(!t){ t={no:x.tree_no,row:x.row_no||1,pos:x.pos||x.tree_no,lat:x.lat,lng:x.lng,id:'',rfid:'',qr:''}; b.trees.push(t); b.rows=Math.max(b.rows,t.row); }
       t.id=x.tree_id||''; t.rfid=x.rfid||''; t.qr=x.qr||'';
     });
-    save(); msg(`Loaded ${all.length} trees from Supabase`); load(); dash();
+    if(auto&&!S.blocks.length) newBlock('Block A');
+    save(); msg(`Loaded ${all.length} trees from Supabase`+(auto?' (auto)':''));
+    if(auto&&!$('#ed').classList.contains('on')) dash(); else { load(); dash(); }
   }catch(e){ msg('Load failed: '+e.message); }
 }
 $('#treeUp').onclick=()=>{ if(confirm('Upload all trees of this block to Supabase?')) pushTrees(blk().trees); };
-$('#treeDown').onclick=pullTrees;
+$('#treeDown').onclick=()=>pullTrees();
 
 /* ---------- Sync harvest_data ---------- */
 async function syncSupabase(){
@@ -883,6 +888,8 @@ $('#themeBtn').onclick=()=>setTheme(document.documentElement.dataset.theme==='da
 document.querySelectorAll('.nv').forEach(b=>b.addEventListener('click',()=>{ $('#pt').textContent=b.dataset.t; $('#ps').textContent=b.dataset.s; }));
 
 dash();
+/* new/empty browser: pull the tree layout from Supabase automatically */
+if(!S.blocks.some(b=>b.trees.length)) pullTrees(true);
 syncSupabase();
 setInterval(syncSupabase,30000);
 </script>
