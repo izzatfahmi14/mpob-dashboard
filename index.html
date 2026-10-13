@@ -327,6 +327,10 @@ const sigQ=r=>!r?'–':(r.rssi>-90&&r.snr>5)?'🟢 Good':(r.rssi>-105&&r.snr>0)?
 const avgRF=f=>{ const v=Object.values(RF).map(r=>r[f]).filter(x=>x!=null);
   return v.length?(v.reduce((a,b)=>a+b,0)/v.length).toFixed(1):'–'; };
 
+/* latency = DB arrival time (created_at) - node send time (device_timestamp) */
+const latMs=r=>{ let d=+r.device_timestamp; if(!d) return null; if(d<1e12) d*=1000; const ms=new Date(r.created_at)-d; return isFinite(ms)?ms:null; };
+const fmtLat=ms=>ms==null?'–':(ms<0||ms>864e5)?'<span class="no" title="Node clock looks unsynced">⚠ clock</span>':ms<6e4?(ms/1000).toFixed(1)+' s':(ms/6e4).toFixed(1)+' min';
+const avgLat=()=>{ const v=Object.values(RF).map(latMs).filter(m=>m!=null&&m>=0&&m<=864e5); return v.length?(v.reduce((a,b)=>a+b,0)/v.length/1000).toFixed(1)+' s':'–'; };
 function hav(la1,lo1,la2,lo2){
   const R=6371000,d=Math.PI/180,a=Math.sin((la2-la1)*d/2)**2+Math.cos(la1*d)*Math.cos(la2*d)*Math.sin((lo2-lo1)*d/2)**2;
   return 2*R*Math.asin(Math.sqrt(a));
@@ -389,6 +393,7 @@ function rfBox(t){
     GPS check: ${gpsTxt(t)} ${g?'':''}<br>
     Bunches: <b>${r.bunch_count}</b> · Weight: <b>${wsum(r).toFixed(1)}</b><br>
     RSSI: <b>${r.rssi} dBm</b> · SNR: <b>${r.snr} dB</b><br>
+    Latency: <b>${fmtLat(latMs(r))}</b><br>
     Freq error: ${r.freq_err} Hz<br>
     <span class="h">${new Date(r.created_at).toLocaleString()}</span></div>`;
 }
@@ -417,8 +422,8 @@ function renderTable(){
   sfRefresh();
   const b=blk(), sorted=b.trees.filter(passF).sort((a,c)=>a.row-c.row||a.pos-c.pos);
   let h=`<tr><th>Tree No</th><th>Row</th><th>Col</th><th>Tree ID</th><th>RFID Card</th><th>QR Code</th>
-    <th>Status</th><th>GPS check</th><th>Bunches</th><th>Weight</th><th>RSSI</th><th>SNR</th><th>Signal</th></tr>`;
-  if(!sorted.length) h+=`<tr><td colspan="13" style="text-align:center;padding:20px;color:#666">No trees match this filter.</td></tr>`;
+    <th>Status</th><th>GPS check</th><th>Bunches</th><th>Weight</th><th>RSSI</th><th>SNR</th><th>Signal</th><th>Latency</th></tr>`;
+  if(!sorted.length) h+=`<tr><td colspan="14" style="text-align:center;padding:20px;color:#666">No trees match this filter.</td></tr>`;
   sorted.forEach(t=>{
     const r=rfOf(t), s=stageOf(t);
     h+=`<tr>
@@ -429,7 +434,7 @@ function renderTable(){
       <td>${s?`<span style="color:${s.c==='#facc15'?'#ca8a04':s.c}">● ${s.l}</span>`:'–'}</td>
       <td>${gpsTxt(t)}</td>
       <td>${r?r.bunch_count:'–'}</td><td>${r?wsum(r).toFixed(1):'–'}</td>
-      <td>${r?r.rssi:'–'}</td><td>${r?r.snr:'–'}</td><td>${sigQ(r)}</td>
+      <td>${r?r.rssi:'–'}</td><td>${r?r.snr:'–'}</td><td>${sigQ(r)}</td><td>${r?fmtLat(latMs(r)):'–'}</td>
     </tr>`;
   });
   $('#data-table').innerHTML=h;
@@ -715,7 +720,7 @@ $('#ip').onchange=e=>{
 let rawRole='all', rawQ='';
 const ROLE_N={S:'🔵 Surveyor',H:'🟡 Harvester',C:'🟢 Collector'};
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const RAW_COLS=['created_at','user_type','qr_id','gps_source','latitude','longitude','bunch_count','w1','w2','w3','w4','w5','w6','w7','w8','w9','w10','device_timestamp','rssi','snr','freq_err'];
+const RAW_COLS=['created_at','user_type','qr_id','gps_source','latitude','longitude','bunch_count','w1','w2','w3','w4','w5','w6','w7','w8','w9','w10','device_timestamp','latency_s','rssi','snr','freq_err'];
 const rawRows=()=>ALL.filter(x=>(rawRole==='all'||roleOf(x)===rawRole)&&(!rawQ||String(x.qr_id).toLowerCase().includes(rawQ)));
 
 function renderRaw(){
@@ -730,8 +735,8 @@ function renderRaw(){
   const rows=rawRows(), shown=rows.slice(0,1000);
   $('#rawInfo').textContent=`Showing ${shown.length} of ${rows.length} rows`+(rows.length>1000?' (first 1000 – narrow with filters)':'');
   let h=`<tr><th>Time</th><th>Role</th><th>QR ID</th><th>GPS check</th><th>GPS</th><th>Lat</th><th>Lng</th><th>Bunches</th>
-    ${[1,2,3,4,5,6,7,8,9,10].map(i=>`<th>W${i}</th>`).join('')}<th>Device Time</th><th>RSSI</th><th>SNR</th><th>Freq Err</th></tr>`;
-  if(!shown.length) h+=`<tr><td colspan="22" style="text-align:center;padding:20px;color:#666">No rows match.</td></tr>`;
+    ${[1,2,3,4,5,6,7,8,9,10].map(i=>`<th>W${i}</th>`).join('')}<th>Device Time</th><th>Latency</th><th>RSSI</th><th>SNR</th><th>Freq Err</th></tr>`;
+  if(!shown.length) h+=`<tr><td colspan="23" style="text-align:center;padding:20px;color:#666">No rows match.</td></tr>`;
   shown.forEach(x=>{
     const t=TI.get(up(x.qr_id)), g=recGPS(x); let chk='<span class="h">tree not mapped</span>';
     if(t){ if(!g) chk='<span class="no">✖ no GPS</span>'; else { const d=hav(t.lat,t.lng,g[0],g[1]); chk=d<=CFG.tol?`<span class="ok">✔ ${d.toFixed(1)} m</span>`:`<span class="no">✖ ${d.toFixed(0)} m</span>`; } }
@@ -741,7 +746,7 @@ function renderRaw(){
       <td>${x.latitude}</td><td>${x.longitude}</td><td>${x.bunch_count}</td>
       ${[1,2,3,4,5,6,7,8,9,10].map(i=>`<td>${x['w'+i]}</td>`).join('')}
       <td>${x.device_timestamp?new Date(x.device_timestamp*1000).toLocaleString():'–'}</td>
-      <td>${x.rssi??'–'}</td><td>${x.snr??'–'}</td><td>${x.freq_err??'–'}</td></tr>`;
+      <td>${fmtLat(latMs(x))}</td><td>${x.rssi??'–'}</td><td>${x.snr??'–'}</td><td>${x.freq_err??'–'}</td></tr>`;
   });
   $('#raw-table').innerHTML=h;
 }
@@ -749,7 +754,7 @@ $('#rawRole').onchange=e=>{ rawRole=e.target.value; renderRaw(); };
 $('#rawQ').oninput=e=>{ rawQ=e.target.value.trim().toLowerCase(); renderRaw(); };
 $('#rawCsv').onclick=()=>{
   const q=v=>'"'+String(v??'').replace(/"/g,'""')+'"';
-  dl('harvest_data'+(rawRole==='all'?'':'-'+rawRole)+'.csv',RAW_COLS.join(',')+'\n'+rawRows().map(x=>RAW_COLS.map(k=>q(x[k])).join(',')).join('\n'));
+  dl('harvest_data'+(rawRole==='all'?'':'-'+rawRole)+'.csv',RAW_COLS.join(',')+'\n'+rawRows().map(x=>RAW_COLS.map(k=>q(k==='latency_s'?(latMs(x)==null?'':(latMs(x)/1000).toFixed(2)):x[k])).join(',')).join('\n'));
 };
 
 /* ---------- Tree master data <-> Supabase ---------- */
@@ -842,6 +847,7 @@ function dash(){
       ${kp('QR IDs Reporting (RF)',Object.keys(RF).length)}
       ${kp('Avg RSSI (dBm)',avgRF('rssi'))}
       ${kp('Avg SNR (dB)',avgRF('snr'))}
+      ${kp('Avg Latency',avgLat())}
     </div>
     <div class="bl">${bl.map((b,i)=>{
       const c=sm(b,'count'), k=sm(b,'collect'), h=sm(b,'harvest'), a=b.trees.filter(t=>t.id).length,
