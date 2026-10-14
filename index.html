@@ -66,6 +66,14 @@ aside h3{margin-top:0}
 #data-table input{width:100%;min-width:90px;padding:6px;border:1px solid var(--bd);border-radius:6px;font-family:ui-monospace,monospace;font-size:13px;background:var(--inp);color:var(--tx)}
 #data-table input:focus{outline:2px solid var(--ac);border-color:transparent}
 .ok{color:var(--ok);font-weight:700}.no{color:var(--x);font-weight:700}
+.net{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:14px;margin-bottom:16px}
+.net h3{margin:0 0 8px;font-size:14px}.net .card{overflow:auto}
+.nt{width:100%;border-collapse:collapse;font-size:12.5px}
+.nt th{text-align:left;color:var(--mut);font-weight:600;padding:4px 6px;border-bottom:1px solid var(--bd);white-space:nowrap}
+.nt td{padding:5px 6px;border-bottom:1px solid var(--bd);white-space:nowrap}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px}.dot.on{background:#22c55e}.dot.off{background:#ef4444}
+.pill{padding:1px 9px;border-radius:99px;font-size:11.5px;font-weight:600;white-space:nowrap}
+.pill.D{background:var(--okbg);color:var(--ok)}.pill.R{background:rgba(245,158,11,.18);color:#d97706}.pill.U{background:var(--soft);color:var(--mut)}
 .leaflet-container{font-family:inherit}
 </style>
 </head>
@@ -88,7 +96,7 @@ aside h3{margin-top:0}
     <label class="b">📂 Load project<input type="file" id="ip" accept=".json" hidden></label>
   </div>
   <button class="b" id="themeBtn" style="margin-top:12px">🌙 Dark mode</button>
-  <div class="live"><i></i> App → Node → Gateway → Supabase · auto-sync 30 s</div>
+  <div class="live"><i id="gwDot"></i><span id="gwTxt">App → Node → Gateway → Supabase · auto-sync 30 s</span></div>
 </nav>
 
 <main>
@@ -102,6 +110,7 @@ aside h3{margin-top:0}
 <div id="raw" class="v">
   <div class="tl">
     <select id="rawRole" style="width:190px"></select>
+    <select id="rawPath" style="width:150px"><option value="all">All paths</option><option value="D">Direct</option><option value="R">Via repeater</option><option value="?">Unknown</option></select>
     <input id="rawQ" placeholder="Search QR ID (e.g. HS-0001)" style="width:230px">
     <button class="b" id="rawCsv">Export CSV</button>
     <span id="rawInfo" class="h"></span>
@@ -318,7 +327,7 @@ $('#tglView').onclick=()=>{
    ============================================================ */
 const SB_URL='https://bjzlkfhiwmbcvtbpmnen.supabase.co', SB_KEY='sb_publishable_1nlPAlImP6EZHSCd0dXXig_gPxlPvFx';
 const sbH={apikey:SB_KEY,Authorization:'Bearer '+SB_KEY};
-let ALL=[], RF={}, BY={};     // RF = newest record per qr (radio health), BY = all records per qr (newest first)
+let ALL=[], RF={}, BY={}, GW=[], GWerr='';     // RF = newest record per qr (radio health), BY = all records per qr (newest first)
 
 const up=s=>String(s??'').trim().toUpperCase();
 const roleOf=x=>up(x.user_type);
@@ -331,6 +340,54 @@ const avgRF=f=>{ const v=Object.values(RF).map(r=>r[f]).filter(x=>x!=null);
 const latMs=r=>{ let d=+r.device_timestamp; if(!d) return null; if(d<1e12) d*=1000; const ms=new Date(r.created_at)-d; return isFinite(ms)?ms:null; };
 const fmtLat=ms=>ms==null?'–':(ms<0||ms>864e5)?'<span class="no" title="Node clock looks unsynced">⚠ clock</span>':ms<6e4?(ms/1000).toFixed(1)+' s':(ms/6e4).toFixed(1)+' min';
 const avgLat=()=>{ const v=Object.values(RF).map(latMs).filter(m=>m!=null&&m>=0&&m<=864e5); return v.length?(v.reduce((a,b)=>a+b,0)/v.length/1000).toFixed(1)+' s':'–'; };
+/* ---------- Path (direct / via repeater) + network helpers ---------- */
+const GW_TTL=150;   /* seconds without heartbeat before a gateway is shown Offline */
+function pathOf(r){
+  const hc=r.hop_count, rl=r.relay_id, has=rl!=null&&String(rl).trim()!=='';
+  const rid=has?String(rl).trim():'', zero=!has||/^0+$/.test(rid);
+  if(hc==null&&!has) return {k:'?',l:'Unknown',rid:''};
+  if((hc!=null&&+hc>0)||!zero) return {k:'R',l:'via '+(zero?'repeater':rid)+(+hc>0?` (${hc} hop${+hc>1?'s':''})`:''),rid:zero?'':rid};
+  return {k:'D',l:'Direct',rid:''};
+}
+const pathBadge=r=>{ const p=pathOf(r); return `<span class="pill ${p.k==='?'?'U':p.k}">${esc(p.l)}</span>`; };
+const ago=t=>{ const s=(Date.now()-new Date(t))/1000; if(!isFinite(s)) return '–'; if(s<0) return 'now'; if(s<60) return Math.round(s)+' s ago'; if(s<3600) return Math.round(s/60)+' min ago'; if(s<86400) return (s/3600).toFixed(1)+' h ago'; return Math.round(s/86400)+' d ago'; };
+const gwOn=g=>(Date.now()-new Date(g.last_seen))/1000<=GW_TTL;
+function gwChip(){
+  const d=$('#gwDot'), t=$('#gwTxt'); if(!d) return;
+  if(!GW.length){ d.style.background='#94a3b8'; d.style.boxShadow='0 0 0 3px rgba(148,163,184,.25)'; t.textContent='Gateway: no heartbeat data'; return; }
+  const on=GW.filter(gwOn).length, c=on===GW.length?'#34d399':on>0?'#f59e0b':'#ef4444';
+  d.style.background=c; d.style.boxShadow=`0 0 0 3px ${c}40`; t.textContent=`Gateways ${on}/${GW.length} online · auto-sync 30 s`;
+}
+function netHtml(){
+  gwChip();
+  const RP={}, ND={};
+  ALL.forEach(x=>{
+    const p=pathOf(x);
+    if(p.k==='R'){
+      const id=p.rid||'(unknown)', o=RP[id]||(RP[id]={n:0,nodes:new Set(),last:x.created_at,rs:0,ss:0,c:0});
+      o.n++; if(x.node_id) o.nodes.add(String(x.node_id));
+      if(x.rssi!=null){ o.rs+=+x.rssi; o.ss+=+x.snr||0; o.c++; }
+    }
+    const nid=x.node_id;
+    if(nid!=null&&String(nid).trim()!==''){
+      const k=String(nid).trim(); if(!ND[k]) ND[k]={n:0,last:x.created_at,r:x}; ND[k].n++;
+    }
+  });
+  const empty=(n,t)=>`<tr><td colspan="${n}" class="h">${t}</td></tr>`;
+  const gw=GW.length?GW.map(g=>{ const on=gwOn(g);
+      return `<tr><td><span class="dot ${on?'on':'off'}"></span><b>${esc(g.gateway_id)}</b></td><td>${on?'Online':'Offline'}</td><td>${ago(g.last_seen)}</td><td>${g.rssi??'–'}</td><td>${esc(g.note||'')}</td></tr>`; }).join('')
+    : empty(5,GWerr?`Cannot read gateway_status (${esc(GWerr)}) – check the RLS select policy.`:'No heartbeat yet – the gateway must write to gateway_status.');
+  const rp=Object.entries(RP).map(([id,o])=>`<tr><td><b>${esc(id)}</b></td><td>${o.n}</td><td>${o.nodes.size||'–'}</td><td>${ago(o.last)}</td><td>${o.c?(o.rs/o.c).toFixed(0)+' / '+(o.ss/o.c).toFixed(1):'–'}</td></tr>`).join('')
+    || empty(5,'No relayed packets yet (needs relay_id / hop_count in uploads).');
+  const nd=Object.entries(ND).map(([id,o])=>`<tr><td><b>${esc(id)}</b></td><td>${pathBadge(o.r)}</td><td>${ago(o.last)}</td><td>${o.n}</td><td>${o.r.rssi??'–'} / ${o.r.snr??'–'}</td></tr>`).join('')
+    || empty(5,'No node_id in uploads yet.');
+  const last=ALL.length?`Last upload received ${ago(ALL[0].created_at)}`:'No uploads yet';
+  return `<div class="net">
+    <div class="card"><h3>📡 Gateways</h3><table class="nt"><tr><th>Gateway</th><th>Status</th><th>Last seen</th><th>RSSI</th><th>Note</th></tr>${gw}</table><p class="h" style="margin:8px 0 0">${last}</p></div>
+    <div class="card"><h3>🔁 Repeaters / Bridges</h3><table class="nt"><tr><th>Repeater</th><th>Packets</th><th>Nodes</th><th>Last seen</th><th>RSSI / SNR</th></tr>${rp}</table><p class="h" style="margin:8px 0 0">RSSI/SNR is measured at the gateway (last hop).</p></div>
+    <div class="card"><h3>📟 Nodes</h3><table class="nt"><tr><th>Node</th><th>Path</th><th>Last seen</th><th>Uploads</th><th>RSSI / SNR</th></tr>${nd}</table></div>
+  </div>`;
+}
 function hav(la1,lo1,la2,lo2){
   const R=6371000,d=Math.PI/180,a=Math.sin((la2-la1)*d/2)**2+Math.cos(la1*d)*Math.cos(la2*d)*Math.sin((lo2-lo1)*d/2)**2;
   return 2*R*Math.asin(Math.sqrt(a));
@@ -394,6 +451,7 @@ function rfBox(t){
     Bunches: <b>${r.bunch_count}</b> · Weight: <b>${wsum(r).toFixed(1)}</b><br>
     RSSI: <b>${r.rssi} dBm</b> · SNR: <b>${r.snr} dB</b><br>
     Latency: <b>${fmtLat(latMs(r))}</b><br>
+    Path: ${pathBadge(r)}${r.node_id?' · Node '+esc(r.node_id):''}${r.gateway_id?' · GW '+esc(r.gateway_id):''}<br>
     Freq error: ${r.freq_err} Hz<br>
     <span class="h">${new Date(r.created_at).toLocaleString()}</span></div>`;
 }
@@ -422,8 +480,8 @@ function renderTable(){
   sfRefresh();
   const b=blk(), sorted=b.trees.filter(passF).sort((a,c)=>a.row-c.row||a.pos-c.pos);
   let h=`<tr><th>Tree No</th><th>Row</th><th>Col</th><th>Tree ID</th><th>RFID Card</th><th>QR Code</th>
-    <th>Status</th><th>GPS check</th><th>Bunches</th><th>Weight</th><th>RSSI</th><th>SNR</th><th>Signal</th><th>Latency</th></tr>`;
-  if(!sorted.length) h+=`<tr><td colspan="14" style="text-align:center;padding:20px;color:#666">No trees match this filter.</td></tr>`;
+    <th>Status</th><th>GPS check</th><th>Bunches</th><th>Weight</th><th>RSSI</th><th>SNR</th><th>Signal</th><th>Latency</th><th>Path</th></tr>`;
+  if(!sorted.length) h+=`<tr><td colspan="15" style="text-align:center;padding:20px;color:#666">No trees match this filter.</td></tr>`;
   sorted.forEach(t=>{
     const r=rfOf(t), s=stageOf(t);
     h+=`<tr>
@@ -434,7 +492,7 @@ function renderTable(){
       <td>${s?`<span style="color:${s.c==='#facc15'?'#ca8a04':s.c}">● ${s.l}</span>`:'–'}</td>
       <td>${gpsTxt(t)}</td>
       <td>${r?r.bunch_count:'–'}</td><td>${r?wsum(r).toFixed(1):'–'}</td>
-      <td>${r?r.rssi:'–'}</td><td>${r?r.snr:'–'}</td><td>${sigQ(r)}</td><td>${r?fmtLat(latMs(r)):'–'}</td>
+      <td>${r?r.rssi:'–'}</td><td>${r?r.snr:'–'}</td><td>${sigQ(r)}</td><td>${r?fmtLat(latMs(r)):'–'}</td><td>${r?pathBadge(r):'–'}</td>
     </tr>`;
   });
   $('#data-table').innerHTML=h;
@@ -717,11 +775,11 @@ $('#ip').onchange=e=>{
 };
 
 /* ---------- Raw Data tab ---------- */
-let rawRole='all', rawQ='';
+let rawRole='all', rawQ='', rawPath='all';
 const ROLE_N={S:'🔵 Surveyor',H:'🟡 Harvester',C:'🟢 Collector'};
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const RAW_COLS=['created_at','user_type','qr_id','gps_source','latitude','longitude','bunch_count','w1','w2','w3','w4','w5','w6','w7','w8','w9','w10','device_timestamp','latency_s','rssi','snr','freq_err'];
-const rawRows=()=>ALL.filter(x=>(rawRole==='all'||roleOf(x)===rawRole)&&(!rawQ||String(x.qr_id).toLowerCase().includes(rawQ)));
+const RAW_COLS=['created_at','user_type','qr_id','node_id','relay_id','hop_count','gateway_id','gps_source','latitude','longitude','bunch_count','w1','w2','w3','w4','w5','w6','w7','w8','w9','w10','device_timestamp','latency_s','rssi','snr','freq_err'];
+const rawRows=()=>ALL.filter(x=>(rawRole==='all'||roleOf(x)===rawRole)&&(rawPath==='all'||pathOf(x).k===rawPath)&&(!rawQ||String(x.qr_id).toLowerCase().includes(rawQ)));
 
 function renderRaw(){
   const c={all:ALL.length,S:0,H:0,C:0};
@@ -734,15 +792,15 @@ function renderRaw(){
   S.blocks.forEach(b=>b.trees.forEach(t=>[t.qr,t.id,t.rfid].filter(Boolean).forEach(k=>{ if(!TI.has(up(k))) TI.set(up(k),t); })));
   const rows=rawRows(), shown=rows.slice(0,1000);
   $('#rawInfo').textContent=`Showing ${shown.length} of ${rows.length} rows`+(rows.length>1000?' (first 1000 – narrow with filters)':'');
-  let h=`<tr><th>Time</th><th>Role</th><th>QR ID</th><th>GPS check</th><th>GPS</th><th>Lat</th><th>Lng</th><th>Bunches</th>
+  let h=`<tr><th>Time</th><th>Role</th><th>QR ID</th><th>Node</th><th>Path</th><th>Gateway</th><th>GPS check</th><th>GPS</th><th>Lat</th><th>Lng</th><th>Bunches</th>
     ${[1,2,3,4,5,6,7,8,9,10].map(i=>`<th>W${i}</th>`).join('')}<th>Device Time</th><th>Latency</th><th>RSSI</th><th>SNR</th><th>Freq Err</th></tr>`;
-  if(!shown.length) h+=`<tr><td colspan="23" style="text-align:center;padding:20px;color:#666">No rows match.</td></tr>`;
+  if(!shown.length) h+=`<tr><td colspan="26" style="text-align:center;padding:20px;color:#666">No rows match.</td></tr>`;
   shown.forEach(x=>{
     const t=TI.get(up(x.qr_id)), g=recGPS(x); let chk='<span class="h">tree not mapped</span>';
     if(t){ if(!g) chk='<span class="no">✖ no GPS</span>'; else { const d=hav(t.lat,t.lng,g[0],g[1]); chk=d<=CFG.tol?`<span class="ok">✔ ${d.toFixed(1)} m</span>`:`<span class="no">✖ ${d.toFixed(0)} m</span>`; } }
     h+=`<tr>
       <td>${new Date(x.created_at).toLocaleString()}</td><td>${ROLE_N[roleOf(x)]||esc(x.user_type)}</td>
-      <td><b>${esc(x.qr_id)}</b></td><td>${chk}</td><td>${esc(x.gps_source)}</td>
+      <td><b>${esc(x.qr_id)}</b></td><td>${esc(x.node_id)}</td><td>${pathBadge(x)}</td><td>${esc(x.gateway_id)}</td><td>${chk}</td><td>${esc(x.gps_source)}</td>
       <td>${x.latitude}</td><td>${x.longitude}</td><td>${x.bunch_count}</td>
       ${[1,2,3,4,5,6,7,8,9,10].map(i=>`<td>${x['w'+i]}</td>`).join('')}
       <td>${x.device_timestamp?new Date(x.device_timestamp*1000).toLocaleString():'–'}</td>
@@ -751,6 +809,7 @@ function renderRaw(){
   $('#raw-table').innerHTML=h;
 }
 $('#rawRole').onchange=e=>{ rawRole=e.target.value; renderRaw(); };
+$('#rawPath').onchange=e=>{ rawPath=e.target.value; renderRaw(); };
 $('#rawQ').oninput=e=>{ rawQ=e.target.value.trim().toLowerCase(); renderRaw(); };
 $('#rawCsv').onclick=()=>{
   const q=v=>'"'+String(v??'').replace(/"/g,'""')+'"';
@@ -812,6 +871,10 @@ async function syncSupabase(){
       if(!RF[k]) RF[k]=x;
       (BY[k]=BY[k]||[]).push(x);
     });
+    try{
+      const g=await fetch(`${SB_URL}/rest/v1/gateway_status?select=*&order=gateway_id`,{headers:sbH});
+      GW=g.ok?await g.json():[]; GWerr=g.ok?'':'HTTP '+g.status;
+    }catch(e){ GW=[]; GWerr='offline'; }
     AC.clear();
     msg(`Synced ${ALL.length} records / ${Object.keys(RF).length} QR IDs`);
     refreshAll();
@@ -836,7 +899,7 @@ $('#sbSync').onclick=syncSupabase;
 function sm(b,r){ return b.reads.filter(x=>x.role==r).reduce((s,x)=>s+x.n,0); }
 function dash(){
   const bl=S.blocks, T=r=>bl.reduce((s,b)=>s+sm(b,r),0), c=T('count'), k=T('collect'), h=T('harvest');
-  let ver=0, rej=0, vb=0;
+  let ver=0, rej=0, vb=0; const pc={D:0,R:0,'?':0}; ALL.forEach(x=>pc[pathOf(x).k]++);
   bl.forEach(b=>b.trees.forEach(t=>{ const a=assess(t), s=a.stage; if(!s) return; if(s.k==='X') rej++; else { ver++; vb+=+(a.latest&&a.latest.bunch_count)||0; } }));
   const kp=(l,v,c='')=>`<div class="card ${c}"><b>${v}</b><span>${l}</span></div>`;
   $('#dash').innerHTML=`
@@ -853,7 +916,10 @@ function dash(){
       ${kp('Avg RSSI (dBm)',avgRF('rssi'))}
       ${kp('Avg SNR (dB)',avgRF('snr'))}
       ${kp('Avg Latency',avgLat())}
+      ${kp('Direct uploads',pc.D)}
+      ${kp('Via repeater',pc.R)}
     </div>
+    ${netHtml()}
     <div class="bl">${bl.map((b,i)=>{
       const c=sm(b,'count'), k=sm(b,'collect'), h=sm(b,'harvest'), a=b.trees.filter(t=>t.id).length,
         p=c?Math.min(100,k/c*100):0, q=b.trees.length?a/b.trees.length*100:0;
