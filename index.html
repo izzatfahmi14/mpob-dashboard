@@ -52,8 +52,8 @@ main{padding:20px 26px;min-width:0}
 .lg i{display:inline-block;width:11px;height:11px;border-radius:50%;border:1px solid #555;vertical-align:-1px;margin-right:4px}
 .lay{display:grid;grid-template-columns:1fr 300px;gap:12px}
 @media(max-width:900px){.lay{grid-template-columns:1fr}.app{grid-template-columns:1fr}.rail{position:static;height:auto;flex-direction:row;flex-wrap:wrap;align-items:center}.live{display:none}main{padding:14px}}
-#map{height:68vh;min-height:420px;border-radius:14px;background:var(--soft);border:1px solid var(--bd);position:relative}
-aside{overflow:auto;max-height:68vh}aside input{width:100%;margin-bottom:6px}aside label{display:block;font-size:12px;color:var(--mut);margin-top:4px}
+#map{height:74vh;min-height:480px;border-radius:14px;background:var(--soft);border:1px solid var(--bd);position:relative}
+aside{overflow:auto;max-height:74vh}aside input{width:100%;margin-bottom:6px}aside label{display:block;font-size:12px;color:var(--mut);margin-top:4px}
 aside h3{margin-top:0}
 .r{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
 .nl{background:none;border:0;box-shadow:none;font-weight:700;font-size:10px;color:#111;text-shadow:0 0 3px #fff;padding:0}.nl:before{display:none}
@@ -74,7 +74,36 @@ aside h3{margin-top:0}
 .dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px}.dot.on{background:#22c55e}.dot.off{background:#ef4444}
 .pill{padding:1px 9px;border-radius:99px;font-size:11.5px;font-weight:600;white-space:nowrap}
 .pill.D{background:var(--okbg);color:var(--ok)}.pill.R{background:rgba(245,158,11,.18);color:#d97706}.pill.U{background:var(--soft);color:var(--mut)}
+.mctl{display:flex;flex-direction:column;gap:6px;align-items:flex-end}
+.mctl .mb{width:36px;height:36px;border-radius:10px;border:1px solid var(--bd);background:var(--panel);color:var(--tx);cursor:pointer;font-size:17px;box-shadow:var(--sh);padding:0}
+.mctl .mb:hover{border-color:var(--ac)}.mctl .mb.on{background:var(--ac);color:var(--acfg);border-color:var(--ac)}
+.cpanel{display:none;width:240px;background:var(--panel);color:var(--tx);border:1px solid var(--bd);border-radius:12px;padding:10px;box-shadow:var(--sh);font-size:12.5px;text-align:left}
+.cpanel.on{display:block}
+.cpanel label.l{display:block;margin-top:6px;color:var(--mut)}
+.cpanel select{width:100%;margin:3px 0 6px;padding:5px;border:1px solid var(--bd);border-radius:7px;background:var(--inp);color:var(--tx)}
+.cpanel .b{width:100%;justify-content:center;margin-top:5px}
+#ed.full{position:fixed;inset:0;z-index:2000;background:var(--bg);padding:10px;overflow:auto}
+#ed.on.full{display:flex;flex-direction:column}
+#ed.full .lay{flex:1;min-height:0;grid-template-rows:minmax(0,1fr)}
+#ed.full #map{height:100%;min-height:0}
+#ed.full aside{max-height:none;height:100%}
+#ed.full .tbl-lay{flex:1;height:auto}
+#ed.full.nobars .tl,#ed.full.nobars .lg,#ed.full.nobars #tabs{display:none}
+#ed.nopanel .lay{grid-template-columns:1fr}#ed.nopanel aside{display:none}
 .leaflet-container{font-family:inherit}
+/* ---- Hardware Compare tab ---- */
+.cmp-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,440px),1fr));gap:14px}
+#cmp h3{margin:0 0 8px;font-size:14px}
+.cv{position:relative;height:290px}
+.hwtag{display:inline-block;padding:1px 9px;border-radius:99px;font-weight:700;font-size:12px;color:#fff}
+.hwtag.V3{background:#d97706}.hwtag.V4{background:#2563eb}
+#cmSum table{width:100%;border-collapse:collapse;font-size:13px}
+#cmSum th{text-align:left;color:var(--mut);font-weight:600;font-size:12px;padding:6px 8px;border-bottom:2px solid var(--bd);white-space:nowrap}
+#cmSum td{padding:7px 8px;border-bottom:1px solid var(--bd);white-space:nowrap}
+#cmSum tr.dl td{font-weight:700;background:var(--soft)}
+.gp{display:grid;grid-template-columns:64px minmax(180px,1fr) auto minmax(160px,auto);gap:8px;align-items:center;margin:8px 0}
+.gp input{font:inherit;padding:6px 8px;border:1px solid var(--bd);border-radius:7px;background:var(--inp);color:var(--tx);width:100%}
+@media(max-width:700px){.gp{grid-template-columns:64px 1fr}.gp .h{grid-column:1/-1}}
 </style>
 </head>
 <body>
@@ -84,6 +113,7 @@ aside h3{margin-top:0}
   <button class="nv on" data-v="dash" data-t="Overview" data-s="Block progress and field verification">▦ &nbsp;Overview</button>
   <button class="nv" data-v="ed" data-t="Map Editor" data-s="Plant grid, tree IDs and live tree status">◎ &nbsp;Map Editor</button>
   <button class="nv" data-v="raw" data-t="Raw Data" data-s="Every LoRa upload received from the gateway">☰ &nbsp;Raw Data</button>
+  <button class="nv" data-v="cmp" data-t="Hardware Compare" data-s="Heltec V3 vs V4 signal performance">📊 &nbsp;Hardware Compare</button>
   <div class="grp">
     <small>GPS validation</small>
     <label title="An upload only counts for a tree if its GPS is within this distance of the mapped tree"><input type="checkbox" id="req" checked> Require GPS ≤ <input type="number" id="tol" min="1" max="200" step="1" value="10"> m</label>
@@ -120,6 +150,35 @@ aside h3{margin-top:0}
   </div>
 </div>
 
+<div id="cmp" class="v">
+  <div class="tl">
+    <button class="b on" data-cm="gw">Gateway V3 vs V4</button>
+    <button class="b" data-cm="relay">Relay V3 vs V4</button>
+    <button class="b" data-cm="node">Node V3 vs V4</button>
+    <span class="sp">
+      <label>Period <select id="cmWin" style="width:110px"><option value="1">Last 1 h</option><option value="6">Last 6 h</option><option value="24" selected>Last 24 h</option><option value="168">Last 7 d</option><option value="0">All data</option></select></label>
+      <label>Path <select id="cmPath" style="width:120px"><option value="all">All paths</option><option value="D">Direct</option><option value="R">Via repeater</option></select></label>
+      <label>Node <select id="cmNode" style="width:110px"></select></label>
+      <button class="b" id="cmCsv">Export CSV</button>
+    </span>
+  </div>
+  <p class="h" id="cmInfo" style="margin:4px 2px 10px"></p>
+  <div class="card" style="margin-bottom:14px;overflow:auto"><h3>Summary</h3><div id="cmSum"></div></div>
+  <div class="cmp-grid">
+    <div class="card"><h3>RSSI over time</h3><div class="cv"><canvas id="cvT"></canvas></div></div>
+    <div class="card"><h3>RSSI distribution (% of packets)</h3><div class="cv"><canvas id="cvR"></canvas></div></div>
+    <div class="card"><h3>SNR distribution (% of packets)</h3><div class="cv"><canvas id="cvS"></canvas></div></div>
+    <div class="card"><h3>RSSI vs distance</h3><p class="h" id="cmNoteD" style="margin:0 0 6px"></p><div class="cv"><canvas id="cvD"></canvas></div></div>
+    <div class="card" id="cmPairCard"><h3>Same packet, both gateways</h3><p class="h" id="cmPairTxt" style="margin:0 0 6px"></p><div class="cv"><canvas id="cvP"></canvas></div></div>
+  </div>
+  <div class="card" style="margin-top:14px">
+    <h3>Test positions and height above sea level</h3>
+    <p class="h" style="margin:0 0 6px">Enter where each gateway is placed (paste "lat, lng" from Google Maps, or use your phone's location). This gives the distance chart and each gateway's height from open terrain data.</p>
+    <div id="cmPos"></div>
+    <p class="h" id="cmElevNote" style="margin:6px 0 0"></p>
+  </div>
+</div>
+
 <div id="ed" class="v">
  <div id="tabs"></div>
  <div class="tl">
@@ -132,6 +191,7 @@ aside h3{margin-top:0}
     <option value="osm">OpenStreetMap</option>
     <option value="light">Light (CARTO)</option>
     <option value="dark">Dark (CARTO)</option>
+    <option value="topo">OpenTopoMap (contours)</option>
     <option value="sat">Esri Satellite</option>
     <option value="google_sat">Google Satellite</option>
     <option value="google_hybrid">Google Hybrid</option>
@@ -186,6 +246,7 @@ aside h3{margin-top:0}
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script>
 const $=s=>document.querySelector(s);
 let S={blocks:[]}, cur=0, sel=[], mode='sel', pend=[], showLines=true, showBuf=false, isTableView=false;
@@ -236,6 +297,7 @@ document.querySelectorAll('.nv').forEach(b=>b.onclick=()=>{
   document.querySelectorAll('.v').forEach(v=>v.classList.toggle('on',v.id==b.dataset.v));
   if(b.dataset.v=='ed'){ map.invalidateSize(); load(); }
   else if(b.dataset.v=='raw') renderRaw();
+  else if(b.dataset.v=='cmp') renderCmp();
   else dash();
 });
 
@@ -247,7 +309,8 @@ const BM={
   google_sat:['https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}','© Google Maps',20],
   google_hybrid:['https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}','© Google Maps',20],
   light:['https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png','© OpenStreetMap © CARTO',19],
-  dark:['https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png','© OpenStreetMap © CARTO',19]
+  dark:['https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png','© OpenStreetMap © CARTO',19],
+  topo:['https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png','© OpenStreetMap, SRTM | © OpenTopoMap (CC-BY-SA)',17]
 };
 let tiles=null;
 function setBase(k){
@@ -684,7 +747,7 @@ function side(){
   if(!t){ sel=[]; return side(); }
   const rd=b.reads.filter(r=>r.no==t.no).slice(-4).map(r=>r.role+' '+r.n).join(', ')||'none';
   el.innerHTML=`<h3>Tree #${t.no}</h3>
-  <p class="h">Row ${t.row}, Column ${t.pos}</p>
+  <p class="h">Row ${t.row}, Column ${t.pos}${elevTxt(t)}</p>
   <button class="b" id="getGpsLocal" style="margin-bottom:12px;width:100%;justify-content:center">📍 Snap to My Location (GPS)</button>
   <label>Tree ID <input id="eid" value="${esc(t.id)}" placeholder="${b.code}-${String(t.no).padStart(4,'0')}"></label>
   <label>RFID Card <input id="erf" value="${esc(t.rfid)}"></label>
@@ -885,6 +948,7 @@ const inTableEdit=()=>{ const a=document.activeElement; return !!(a&&a.closest&&
 function refreshAll(){
   dash();
   if($('#raw').classList.contains('on')) renderRaw();
+  if($('#cmp').classList.contains('on')) renderCmp();
   if($('#ed').classList.contains('on')){
     if(isTableView){ if(inTableEdit()) pendingRefresh=true; else renderTable(); }
     else { draw(); side(); }
@@ -939,6 +1003,405 @@ function dash(){
   document.querySelectorAll('[data-o]').forEach(x=>x.onclick=()=>{ cur=+x.dataset.o; document.querySelector('[data-v=ed]').click(); });
 }
 
+/* ============ Contours + full-view controls ============ */
+const tileXY=(lat,lng,z)=>{ const n=2**z, r=lat*Math.PI/180; return {x:Math.floor((lng+180)/360*n), y:Math.floor((1-Math.log(Math.tan(r)+1/Math.cos(r))/Math.PI)/2*n)}; };
+const pxLL=(X,Y,z)=>{ const s=256*2**z; return [Math.atan(Math.sinh(Math.PI*(1-2*Y/s)))*180/Math.PI, X/s*360-180]; };
+function blur(g,w,h,r){
+  const t=new Float32Array(g.length), n=2*r+1, cl=(v,m)=>v<0?0:v>m?m:v;
+  for(let y=0;y<h;y++){ let a=0; for(let x=-r;x<=r;x++) a+=g[y*w+cl(x,w-1)];
+    for(let x=0;x<w;x++){ t[y*w+x]=a/n; a+=g[y*w+cl(x+r+1,w-1)]-g[y*w+cl(x-r,w-1)]; } }
+  for(let x=0;x<w;x++){ let a=0; for(let y=-r;y<=r;y++) a+=t[cl(y,h-1)*w+x];
+    for(let y=0;y<h;y++){ g[y*w+x]=a/n; a+=t[cl(y+r+1,h-1)*w+x]-t[cl(y-r,h-1)*w+x]; } }
+}
+function msSegs(G,w,h,lv,toLL){
+  const out=[], t=(p,q)=>(lv-p)/(q-p);
+  for(let y=0;y<h-1;y++)for(let x=0;x<w-1;x++){
+    const a=G[y*w+x], b=G[y*w+x+1], c=G[(y+1)*w+x+1], d=G[(y+1)*w+x];
+    const i=(a>=lv?8:0)|(b>=lv?4:0)|(c>=lv?2:0)|(d>=lv?1:0);
+    if(i===0||i===15) continue;
+    const T=[x+t(a,b),y], R=[x+1,y+t(b,c)], B=[x+t(d,c),y+1], L=[x,y+t(a,d)];
+    const s=(p,q)=>out.push([toLL(p[0],p[1]),toLL(q[0],q[1])]);
+    switch(i){
+      case 1:case 14:s(L,B);break; case 2:case 13:s(B,R);break; case 3:case 12:s(L,R);break;
+      case 4:case 11:s(T,R);break; case 5:s(T,R);s(L,B);break; case 6:case 9:s(T,B);break;
+      case 7:case 8:s(L,T);break; case 10:s(L,T);s(B,R);break;
+    }
+  }
+  return out;
+}
+
+let DEM=null, IMP=null;
+map.createPane('contours').style.zIndex=350;
+const crend=L.canvas({pane:'contours'}), CL=L.layerGroup().addTo(map);
+const EDV=$('#ed'), refit=()=>setTimeout(()=>map.invalidateSize(),80);
+
+const MC=L.control({position:'topright'});
+MC.onAdd=()=>{
+  const d=L.DomUtil.create('div','mctl');
+  d.innerHTML=`<button class="mb" id="mbFull" title="Full view (Esc to exit)">⛶</button>
+  <button class="mb" id="mbBars" title="Show / hide toolbars (full view)">🧰</button>
+  <button class="mb" id="mbPanel" title="Hide / show side panel">◧</button>
+  <button class="mb" id="mbCont" title="Contours">〰</button>
+  <div class="cpanel" id="cpanel">
+    <b>Contour lines</b>
+    <label class="l">Interval</label>
+    <select id="cint"><option value="1">1 m</option><option value="2">2 m</option><option value="5" selected>5 m</option><option value="10">10 m</option><option value="20">20 m</option></select>
+    <button class="b p" id="cgen">Generate for this view</button>
+    <label class="b">Import GeoJSON<input type="file" id="cgj" accept=".geojson,.json" hidden></label>
+    <button class="b" id="cclr">Clear contours</button>
+    <p class="h" id="cinfo" style="margin:8px 0 0">Generated lines use open ~30 m terrain data. For accurate lines import contours from your drone DEM.</p>
+  </div>`;
+  L.DomEvent.disableClickPropagation(d); L.DomEvent.disableScrollPropagation(d);
+  return d;
+};
+MC.addTo(map);
+
+function setFull(on){
+  EDV.classList.toggle('full',on); document.body.style.overflow=on?'hidden':'';
+  if(on) EDV.classList.add('nobars'); else EDV.classList.remove('nobars');
+  $('#mbFull').classList.toggle('on',on); $('#mbBars').classList.remove('on'); refit();
+}
+$('#mbFull').onclick=()=>setFull(!EDV.classList.contains('full'));
+$('#mbBars').onclick=()=>{
+  if(!EDV.classList.contains('full')) setFull(true);
+  const hide=EDV.classList.toggle('nobars'); $('#mbBars').classList.toggle('on',!hide); refit();
+};
+$('#mbPanel').onclick=()=>{ const h=EDV.classList.toggle('nopanel'); $('#mbPanel').classList.toggle('on',h); refit(); };
+$('#mbCont').onclick=()=>{ $('#cpanel').classList.toggle('on'); $('#mbCont').classList.toggle('on'); };
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&EDV.classList.contains('full')) setFull(false); });
+
+const cinfo=t=>{ $('#cinfo').textContent=t; };
+const LINE=(idx)=>({color:idx?'#f59e0b':'#d97706',weight:idx?1.8:.8,opacity:.9});
+
+/* elevation of a point from the generated terrain grid */
+function elevAt(lat,lng){
+  if(!DEM) return null;
+  const s=256*2**DEM.z, X=(lng+180)/360*s, r=lat*Math.PI/180,
+        Y=(1-Math.log(Math.tan(r)+1/Math.cos(r))/Math.PI)/2*s,
+        px=Math.round(X-DEM.x0*256), py=Math.round(Y-DEM.y0*256);
+  if(px<0||py<0||px>=DEM.w||py>=DEM.h) return null;
+  return DEM.g[py*DEM.w+px];
+}
+const elevTxt=t=>{ const e=elevAt(t.lat,t.lng); return e==null?'':` · ~${e.toFixed(0)} m asl`; };
+
+const loadImg=u=>new Promise((res,rej)=>{ const i=new Image(); i.crossOrigin='anonymous'; i.onload=()=>res(i); i.onerror=()=>rej(new Error('tile')); i.src=u; });
+
+async function genContours(){
+  cinfo('Loading terrain tiles…');
+  try{
+    const bd=map.getBounds().pad(0.1);
+    let z=Math.max(8,Math.min(15,Math.round(map.getZoom()))), nw, se;
+    for(;;){
+      nw=tileXY(bd.getNorth(),bd.getWest(),z); se=tileXY(bd.getSouth(),bd.getEast(),z);
+      if((se.x-nw.x+1)*(se.y-nw.y+1)<=16||z<=8) break; z--;
+    }
+    const tw=se.x-nw.x+1, th=se.y-nw.y+1, W=tw*256, H=th*256;
+    const cv=document.createElement('canvas'); cv.width=W; cv.height=H;
+    const cx=cv.getContext('2d',{willReadFrequently:true});
+    await Promise.all([...Array(tw*th).keys()].map(async k=>{
+      const i=k%tw, j=Math.floor(k/tw);
+      const im=await loadImg(`https://s3.amazonaws.com/elevation-tiles-prod/terrarium/${z}/${nw.x+i}/${nw.y+j}.png`);
+      cx.drawImage(im,i*256,j*256);
+    }));
+    const d=cx.getImageData(0,0,W,H).data, g=new Float32Array(W*H);
+    for(let i=0;i<g.length;i++) g[i]=d[i*4]*256+d[i*4+1]+d[i*4+2]/256-32768;
+    blur(g,W,H,3);
+    DEM={z,x0:nw.x,y0:nw.y,w:W,h:H,g}; IMP=null;
+    map.attributionControl.addAttribution('Terrain: Mapzen / AWS Terrain Tiles');
+    drawContours();
+    if(sel.length===1) side();
+  }catch(e){ cinfo('Could not load terrain tiles (offline or blocked).'); }
+}
+
+function drawContours(){
+  CL.clearLayers(); if(!DEM) return;
+  const iv=+$('#cint').value, {z,x0,y0,w,h,g}=DEM,
+        st=Math.max(1,Math.round(Math.max(w,h)/600)), w2=Math.floor((w-1)/st)+1, h2=Math.floor((h-1)/st)+1,
+        G=new Float32Array(w2*h2); let mn=1e9, mx=-1e9;
+  for(let y=0;y<h2;y++)for(let x=0;x<w2;x++){ const v=g[y*st*w+x*st]; G[y*w2+x]=v; if(v<mn)mn=v; if(v>mx)mx=v; }
+  const lv=[]; for(let e=Math.ceil(mn/iv)*iv;e<=mx&&lv.length<80;e+=iv) lv.push(e);
+  lv.forEach(e=>{
+    const segs=msSegs(G,w2,h2,e,(px,py)=>pxLL(x0*256+px*st,y0*256+py*st,z));
+    if(!segs.length) return;
+    L.polyline(segs,{pane:'contours',renderer:crend,interactive:true,bubblingMouseEvents:true,...LINE(Math.round(e/iv)%5===0)})
+      .bindTooltip(`${e} m`,{sticky:true}).addTo(CL);
+  });
+  cinfo(lv.length?`${lv.length} lines · terrain ${mn.toFixed(0)}–${mx.toFixed(0)} m (±several m). Hover a line for its height.`
+                  :`Terrain is flat here (${mn.toFixed(0)}–${mx.toFixed(0)} m). Try a smaller interval.`);
+}
+
+/* imported contours (GeoJSON from QGIS, must be WGS84 / EPSG:4326) */
+function elevProp(p){
+  if(!p) return null;
+  for(const k of ['ELEV','elev','Elevation','elevation','ELEVATION','height','HEIGHT','Height','value','VALUE','Z','z','CONTOUR','contour'])
+    if(p[k]!=null&&p[k]!==''&&isFinite(+p[k])) return +p[k];
+  for(const k in p) if(p[k]!==''&&p[k]!=null&&isFinite(+p[k])) return +p[k];
+  return null;
+}
+function firstCoord(o){ if(!o) return null; if(typeof o[0]==='number') return o; for(const c of o){ const r=firstCoord(c); if(r) return r; } return null; }
+function drawImported(fit){
+  CL.clearLayers(); if(!IMP) return;
+  const iv=+$('#cint').value;
+  const lyr=L.geoJSON(IMP,{pane:'contours',renderer:crend,
+    style:f=>{ const e=elevProp(f.properties); return LINE(e!=null&&Math.round(e/iv)%5===0); },
+    onEachFeature:(f,l)=>{ const e=elevProp(f.properties); if(e!=null) l.bindTooltip(`${e} m`,{sticky:true}); }}).addTo(CL);
+  cinfo('Imported contour lines shown. Hover a line for its height.');
+  if(fit&&!blk().locked){ try{ map.fitBounds(lyr.getBounds()); }catch(e){} }
+}
+$('#cgj').onchange=e=>{
+  const f=e.target.files[0]; if(!f) return;
+  const rd=new FileReader();
+  rd.onload=()=>{
+    try{
+      const o=JSON.parse(rd.result), c=firstCoord(o.features?o.features.map(x=>x.geometry&&x.geometry.coordinates):o.coordinates);
+      if(!c||Math.abs(c[0])>180||Math.abs(c[1])>90) return alert('GeoJSON must be in WGS84 (EPSG:4326). In QGIS: Export → Save Features As → set CRS to EPSG:4326.');
+      IMP=o; DEM=null; drawImported(true);
+      try{ if(rd.result.length<3e6) localStorage.setItem('palmcontour',rd.result); else cinfo('Imported (too large to remember after refresh).'); }catch(x){}
+    }catch(x){ alert('Invalid GeoJSON file'); }
+  };
+  rd.readAsText(f); e.target.value='';
+};
+$('#cgen').onclick=genContours;
+$('#cint').onchange=()=>{ if(IMP) drawImported(false); else drawContours(); };
+$('#cclr').onclick=()=>{ DEM=null; IMP=null; CL.clearLayers(); try{localStorage.removeItem('palmcontour')}catch(e){} cinfo('Contours cleared.'); if(sel.length===1) side(); };
+try{ const sv=localStorage.getItem('palmcontour'); if(sv){ IMP=JSON.parse(sv); drawImported(false); } }catch(e){}
+
+/* ============ Hardware Compare tab (V3 vs V4) ============ */
+const HWC={V3:'#f59e0b',V4:'#2563eb'}, HWK=['V3','V4'];
+const CMP={mode:'gw',win:'24',path:'all',node:'all'}, CH={};
+const CMP_FIELD={gw:'gateway_id',relay:'relay_id',node:'node_id'};
+const CMP_INFO={
+  gw:'Both gateways at the same spot hear the same packet. RSSI/SNR are measured at the receiving gateway, so this isolates the gateway board.',
+  relay:'RSSI/SNR here are measured at the gateway on the relay→gateway hop, so this shows how well each relay transmits. Run one relay at a time: the gateway keeps only the first copy of a packet.',
+  node:'RSSI/SNR are measured at the gateway. Use Direct packets so the signal is the node→gateway link, and keep the gateway the same.'
+};
+let GPOS={}; try{ GPOS=JSON.parse(localStorage.getItem('palmgwpos')||'{}')||{}; }catch(e){}
+const GEL={};
+const hwOf=id=>{ const s=String(id??'').trim().toUpperCase(); return s.endsWith('V3')?'V3':s.endsWith('V4')?'V4':null; };
+const sigK=r=>(r.rssi>-90&&r.snr>5)?0:(r.rssi>-105&&r.snr>0)?1:2;
+const avgA=v=>v.length?v.reduce((a,b)=>a+b,0)/v.length:null;
+const medA=v=>{ if(!v.length) return null; const s=[...v].sort((a,b)=>a-b), m=s.length>>1; return s.length%2?s[m]:(s[m-1]+s[m])/2; };
+const f1=(v,d=1)=>v==null?'–':v.toFixed(d);
+const sg=(v,d=1,u='')=>v==null?'–':(v>0?'+':'')+v.toFixed(d)+u;
+const gpKey=id=>String(id??'').trim().toUpperCase();
+const distTo=r=>{ const p=GPOS[gpKey(r.gateway_id)], g=recGPS(r); return (p&&g)?hav(p.lat,p.lng,g[0],g[1]):null; };
+
+function cmpBase(){
+  const lim=+CMP.win?Date.now()-CMP.win*36e5:0;
+  return ALL.filter(r=>{
+    if(r.rssi==null||r.snr==null) return false;
+    if(lim&&new Date(r.created_at).getTime()<lim) return false;
+    if(CMP.node!=='all'&&String(r.node_id||'').trim()!==CMP.node) return false;
+    const pk=pathOf(r).k;
+    if(CMP.path!=='all'&&pk!==CMP.path) return false;
+    if(CMP.mode==='relay'&&pk!=='R') return false;
+    return true;
+  });
+}
+function cmpGroups(rows){
+  const g={V3:[],V4:[]}, f=CMP_FIELD[CMP.mode];
+  rows.forEach(r=>{ const h=hwOf(r[f]); if(h) g[h].push(r); });
+  return g;
+}
+function cmpStats(a){
+  if(!a.length) return null;
+  const rs=a.map(r=>+r.rssi), sn=a.map(r=>+r.snr).filter(isFinite), k=[0,0,0];
+  a.forEach(r=>k[sigK(r)]++);
+  const lt=a.map(latMs).filter(m=>m!=null&&m>=0&&m<=864e5);
+  const f=CMP_FIELD[CMP.mode], ids=[...new Set(a.map(r=>String(r[f]).trim()))];
+  return {n:a.length,ids,avg:avgA(rs),med:medA(rs),min:Math.min(...rs),max:Math.max(...rs),snr:avgA(sn),
+          good:k[0]/a.length*100,fair:k[1]/a.length*100,weak:k[2]/a.length*100,lat:lt.length?avgA(lt)/1000:null};
+}
+function cmpSummary(g){
+  const S={V3:cmpStats(g.V3),V4:cmpStats(g.V4)};
+  const row=h=>{ const s=S[h]; const tag=`<span class="hwtag ${h}">${h}</span>`;
+    if(!s) return `<tr><td>${tag}</td><td colspan="11" class="h">No packets in this selection</td></tr>`;
+    return `<tr><td>${tag}</td><td>${esc(s.ids.join(', '))}</td><td><b>${s.n}</b></td><td><b>${f1(s.avg)}</b></td><td>${f1(s.med)}</td><td>${s.min}</td><td>${s.max}</td>
+      <td>${f1(s.snr)}</td><td>${f1(s.good,0)}%</td><td>${f1(s.fair,0)}%</td><td>${f1(s.weak,0)}%</td><td>${s.lat==null?'–':f1(s.lat)+' s'}</td></tr>`; };
+  let d='';
+  if(S.V3&&S.V4) d=`<tr class="dl"><td colspan="2">V4 − V3</td><td>${sg(S.V4.n-S.V3.n,0)}</td><td>${sg(S.V4.avg-S.V3.avg,1,' dB')}</td><td>${sg(S.V4.med-S.V3.med,1,' dB')}</td><td></td><td></td>
+      <td>${sg(S.V4.snr-S.V3.snr,1,' dB')}</td><td>${sg(S.V4.good-S.V3.good,0,' pp')}</td><td>${sg(S.V4.fair-S.V3.fair,0,' pp')}</td><td>${sg(S.V4.weak-S.V3.weak,0,' pp')}</td><td></td></tr>`;
+  return `<table><tr><th>Hardware</th><th>Device IDs</th><th>Packets</th><th>RSSI avg (dBm)</th><th>RSSI median</th><th>Min</th><th>Max</th><th>SNR avg (dB)</th><th>Good</th><th>Fair</th><th>Weak</th><th>Avg latency</th></tr>${row('V3')}${row('V4')}${d}</table>
+    <p class="h" style="margin:8px 0 0">Higher RSSI (closer to 0) = stronger signal. Good: RSSI &gt; −90 and SNR &gt; 5 · Fair: RSSI &gt; −105 and SNR &gt; 0 · otherwise Weak.</p>`;
+}
+
+/* ---- charts ---- */
+function chTheme(){
+  const cs=getComputedStyle(document.documentElement);
+  Chart.defaults.color=cs.getPropertyValue('--mut').trim();
+  Chart.defaults.borderColor=cs.getPropertyValue('--bd').trim();
+  Chart.defaults.font.family=getComputedStyle(document.body).fontFamily;
+  Chart.defaults.animation=false;
+}
+const clr=id=>{ if(CH[id]){ CH[id].destroy(); delete CH[id]; } };
+function mk(id,cfg){ clr(id); CH[id]=new Chart($('#'+id),cfg); }
+const baseOpt=(xt,yt)=>({responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top'}},
+  scales:{x:{title:{display:!!xt,text:xt}},y:{title:{display:!!yt,text:yt}}}});
+
+function chartTime(g){
+  const o=baseOpt('Time','RSSI (dBm)'), long=CMP.win==='0'||+CMP.win>24;
+  o.scales.x.type='linear';
+  o.scales.x.ticks={maxTicksLimit:8,callback:v=>{ const d=new Date(v), t=d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+    return long?d.toLocaleDateString([],{month:'short',day:'numeric'})+' '+t:t; }};
+  o.plugins.tooltip={callbacks:{label:c=>`${c.dataset.label.split(' ')[0]}: ${c.parsed.y} dBm · ${new Date(c.parsed.x).toLocaleString()}`}};
+  mk('cvT',{type:'scatter',options:o,data:{datasets:HWK.map(h=>({label:`${h} (${g[h].length})`,
+    data:g[h].map(r=>({x:new Date(r.created_at).getTime(),y:+r.rssi})),backgroundColor:HWC[h],borderColor:HWC[h],pointRadius:3}))}});
+}
+function histChart(id,g,key,step,xl){
+  const all=[...g.V3,...g.V4].map(r=>+r[key]).filter(isFinite);
+  if(!all.length){ clr(id); return; }
+  const lo=Math.floor(Math.min(...all)/step)*step; let hi=Math.ceil(Math.max(...all)/step)*step; if(hi<=lo) hi=lo+step;
+  const n=Math.round((hi-lo)/step), labels=[...Array(n).keys()].map(i=>String(lo+i*step));
+  const ds=HWK.map(h=>{ const c=new Array(n).fill(0), v=g[h].map(r=>+r[key]).filter(isFinite);
+    v.forEach(x=>{ let i=Math.floor((x-lo)/step); i=Math.max(0,Math.min(n-1,i)); c[i]++; });
+    return {label:`${h} (n=${v.length})`,data:c.map(k=>v.length?k/v.length*100:0),backgroundColor:HWC[h]+'cc'}; });
+  const o=baseOpt(xl+' (bin start)','% of packets');
+  o.plugins.tooltip={callbacks:{label:c=>`${c.dataset.label}: ${c.parsed.y.toFixed(1)}%`}};
+  mk(id,{type:'bar',options:o,data:{labels,datasets:ds}});
+}
+function chartDist(g){
+  const note=$('#cmNoteD');
+  if(CMP.mode==='relay'){ note.textContent='Not available for relays: their RSSI is measured relay → gateway, not node → gateway.'; clr('cvD'); return; }
+  const pts={V3:[],V4:[]}; let nopos=0, nogps=0;
+  HWK.forEach(h=>g[h].forEach(r=>{
+    if(pathOf(r).k!=='D') return;
+    if(!GPOS[gpKey(r.gateway_id)]){ nopos++; return; }
+    const d=distTo(r); if(d==null){ nogps++; return; }
+    pts[h].push({x:d,y:+r.rssi});
+  }));
+  const all=[...pts.V3,...pts.V4];
+  if(!all.length){
+    note.textContent=nopos?'Enter the gateway positions below to plot RSSI against distance.':'No Direct packets with a valid GPS position in this selection.';
+    clr('cvD'); return;
+  }
+  const step=Math.max(10,Math.ceil(Math.max(...all.map(p=>p.x))/8/10)*10);
+  note.textContent=`Direct packets only. Distance = node GPS to the gateway position you entered.${nogps?` ${nogps} without GPS skipped.`:''} Lines show the average per ${step} m.`;
+  const ds=[];
+  HWK.forEach(h=>{
+    ds.push({label:`${h} packets`,data:pts[h],backgroundColor:HWC[h]+'88',borderColor:HWC[h]+'88',pointRadius:3});
+    const b={}; pts[h].forEach(p=>{ const i=Math.floor(p.x/step); (b[i]=b[i]||[]).push(p.y); });
+    ds.push({label:`${h} average`,showLine:true,tension:.2,borderColor:HWC[h],backgroundColor:HWC[h],pointRadius:5,
+      data:Object.keys(b).map(Number).sort((a,c)=>a-c).map(i=>({x:(i+.5)*step,y:avgA(b[i])}))});
+  });
+  const o=baseOpt('Distance (m)','RSSI (dBm)'); o.scales.x.type='linear';
+  mk('cvD',{type:'scatter',options:o,data:{datasets:ds}});
+}
+function chartPair(rows){
+  const card=$('#cmPairCard');
+  if(CMP.mode!=='gw'){ card.style.display='none'; clr('cvP'); return; }
+  card.style.display='';
+  const m=new Map();
+  rows.forEach(r=>{
+    const h=hwOf(r.gateway_id); if(!h||!+r.device_timestamp) return;
+    const k=up(r.qr_id)+'|'+r.device_timestamp+'|'+String(r.node_id||'').trim();
+    let e=m.get(k); if(!e){ e={}; m.set(k,e); } if(!e[h]) e[h]=r;
+  });
+  const dr=[], ds=[]; let o3=0, o4=0;
+  m.forEach(e=>{ if(e.V3&&e.V4){ dr.push(+e.V4.rssi-+e.V3.rssi); ds.push(+e.V4.snr-+e.V3.snr); } else if(e.V3) o3++; else if(e.V4) o4++; });
+  const txt=$('#cmPairTxt');
+  if(!dr.length){
+    txt.textContent=`No packet was heard by both GWV3 and GWV4 in this selection (only GWV3: ${o3}, only GWV4: ${o4}). Put both gateways at the same spot and send from the same node.`;
+    clr('cvP'); return;
+  }
+  const better=dr.filter(x=>x>0).length/dr.length*100, same=dr.filter(x=>x===0).length/dr.length*100;
+  txt.innerHTML=`<b>${dr.length}</b> paired packets · mean RSSI difference (V4 − V3): <b>${sg(avgA(dr),1,' dB')}</b> · mean SNR difference: <b>${sg(avgA(ds),1,' dB')}</b> · V4 stronger in <b>${better.toFixed(0)}%</b>, equal in ${same.toFixed(0)}% · heard only by V3: <b>${o3}</b>, only by V4: <b>${o4}</b>`;
+  const step=2, lo=Math.floor(Math.min(...dr)/step)*step; let hi=Math.ceil(Math.max(...dr)/step)*step; if(hi<=lo) hi=lo+step;
+  const n=Math.round((hi-lo)/step), c=new Array(n).fill(0);
+  dr.forEach(x=>{ let i=Math.floor((x-lo)/step); i=Math.max(0,Math.min(n-1,i)); c[i]++; });
+  const o=baseOpt('RSSI difference V4 − V3 in dB (bin start)','Packets'); o.plugins.legend={display:false};
+  mk('cvP',{type:'bar',options:o,data:{labels:[...Array(n).keys()].map(i=>String(lo+i*step)),
+    datasets:[{data:c,backgroundColor:c.map((_,i)=>{ const mid=lo+(i+.5)*step; return mid<0?HWC.V3+'cc':mid>0?HWC.V4+'cc':'#94a3b8'; })}]}});
+}
+
+function renderCmp(){
+  /* node filter list */
+  const ns=[...new Set(ALL.map(r=>String(r.node_id||'').trim()).filter(Boolean))].sort(), sel=$('#cmNode');
+  sel.innerHTML='<option value="all">All nodes</option>'+ns.map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join('');
+  if(CMP.node!=='all'&&!ns.includes(CMP.node)) CMP.node='all';
+  sel.value=CMP.node;
+  const rows=cmpBase(), g=cmpGroups(rows);
+  $('#cmInfo').textContent=CMP_INFO[CMP.mode]+` · ${g.V3.length+g.V4.length} packets match.`;
+  $('#cmSum').innerHTML=cmpSummary(g);
+  if(typeof Chart==='undefined'){ $('#cmInfo').textContent+=' Charts could not load (Chart.js needs internet).'; return; }
+  chTheme();
+  chartTime(g); histChart('cvR',g,'rssi',5,'RSSI (dBm)'); histChart('cvS',g,'snr',2,'SNR (dB)'); chartDist(g); chartPair(rows);
+}
+
+/* ---- gateway positions + height above sea level ---- */
+const ELC={};
+async function elevOnline(lat,lng){
+  const z=14, t=tileXY(lat,lng,z), key=`${z}/${t.x}/${t.y}`;
+  let d=ELC[key];
+  if(!d){
+    const im=await loadImg(`https://s3.amazonaws.com/elevation-tiles-prod/terrarium/${key}.png`);
+    const cv=document.createElement('canvas'); cv.width=cv.height=256;
+    const cx=cv.getContext('2d',{willReadFrequently:true}); cx.drawImage(im,0,0);
+    d=ELC[key]=cx.getImageData(0,0,256,256).data;
+  }
+  const s=256*2**z, X=(lng+180)/360*s, r=lat*Math.PI/180, Y=(1-Math.log(Math.tan(r)+1/Math.cos(r))/Math.PI)/2*s,
+        cx0=Math.floor(X-t.x*256), cy0=Math.floor(Y-t.y*256), v=[];
+  for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){
+    const px=Math.max(0,Math.min(255,cx0+dx)), py=Math.max(0,Math.min(255,cy0+dy)), i=(py*256+px)*4;
+    v.push(d[i]*256+d[i+1]+d[i+2]/256-32768);
+  }
+  return avgA(v);
+}
+function elevNote(){
+  const a=GEL.GWV3, b=GEL.GWV4;
+  $('#cmElevNote').textContent=(a!=null&&b!=null)?`Terrain height: GWV4 is ${Math.abs(b-a).toFixed(0)} m ${b>=a?'higher':'lower'} than GWV3 (open ~30 m terrain data, ±several m). Antenna height above the ground matters too.`:'';
+}
+async function showElev(id){
+  const p=GPOS[id], el=$('#gpe-'+id); if(!el) return;
+  if(!p){ el.textContent=''; GEL[id]=null; elevNote(); return; }
+  el.textContent='height: loading…';
+  try{
+    const e=await elevOnline(p.lat,p.lng); GEL[id]=e;
+    el.textContent=`~${e.toFixed(0)} m above sea level`+(p.alt!=null?` · phone GPS ${p.alt.toFixed(0)} m`:'');
+  }catch(x){ GEL[id]=null; el.textContent='height unavailable (offline)'; }
+  elevNote();
+}
+function setGP(id,val,extra){
+  const el=$('#gpe-'+id);
+  if(!val.trim()){ delete GPOS[id]; }
+  else{
+    const m=val.match(/(-?\d+(?:\.\d+)?)\s*[,;\s]\s*(-?\d+(?:\.\d+)?)/);
+    if(!m||Math.abs(+m[1])>90||Math.abs(+m[2])>180){ el.textContent='Use the format: lat, lng'; return; }
+    GPOS[id]=Object.assign({lat:+m[1],lng:+m[2]},extra||{});
+  }
+  try{ localStorage.setItem('palmgwpos',JSON.stringify(GPOS)); }catch(e){}
+  showElev(id);
+  if($('#cmp').classList.contains('on')) renderCmp();
+}
+function initCmp(){
+  $('#cmPos').innerHTML=['GWV3','GWV4'].map(id=>`<div class="gp"><span class="hwtag ${hwOf(id)}">${id}</span>
+    <input data-gp="${id}" placeholder="lat, lng  e.g. 3.5212, 102.4210" value="${GPOS[id]?GPOS[id].lat+', '+GPOS[id].lng:''}">
+    <button class="b" data-gps="${id}">📍 My location</button><span class="h" id="gpe-${id}"></span></div>`).join('');
+  document.querySelectorAll('[data-gp]').forEach(i=>i.onchange=()=>setGP(i.dataset.gp,i.value));
+  document.querySelectorAll('[data-gps]').forEach(b=>b.onclick=()=>{
+    if(!navigator.geolocation) return alert('Geolocation not supported');
+    navigator.geolocation.getCurrentPosition(pos=>{
+      const id=b.dataset.gps, c=pos.coords, v=c.latitude.toFixed(6)+', '+c.longitude.toFixed(6);
+      document.querySelector(`[data-gp=${id}]`).value=v;
+      setGP(id,v,{alt:(c.altitude!=null&&isFinite(c.altitude))?c.altitude:null});
+    },err=>alert('Unable to get location: '+err.message),{enableHighAccuracy:true});
+  });
+  ['GWV3','GWV4'].forEach(showElev);
+  document.querySelectorAll('[data-cm]').forEach(b=>b.onclick=()=>{
+    CMP.mode=b.dataset.cm; document.querySelectorAll('[data-cm]').forEach(x=>x.classList.toggle('on',x==b)); renderCmp();
+  });
+  $('#cmWin').onchange=e=>{ CMP.win=e.target.value; renderCmp(); };
+  $('#cmPath').onchange=e=>{ CMP.path=e.target.value; renderCmp(); };
+  $('#cmNode').onchange=e=>{ CMP.node=e.target.value; renderCmp(); };
+  $('#cmCsv').onclick=()=>{
+    const q=v=>'"'+String(v??'').replace(/"/g,'""')+'"', f=CMP_FIELD[CMP.mode];
+    const H=['created_at','hw','node_id','relay_id','gateway_id','path','user_type','qr_id','rssi','snr','latitude','longitude','distance_m'];
+    const rows=cmpBase().filter(r=>hwOf(r[f])).map(r=>{ const d=distTo(r);
+      return [r.created_at,hwOf(r[f]),r.node_id,r.relay_id,r.gateway_id,pathOf(r).l,r.user_type,r.qr_id,r.rssi,r.snr,r.latitude,r.longitude,d==null?'':d.toFixed(1)].map(q).join(','); });
+    dl('hardware_compare_'+CMP.mode+'.csv',H.join(',')+'\n'+rows.join('\n'));
+  };
+}
+initCmp();
+
 /* ---------- Theme (light / dark) ---------- */
 function setTheme(t,init){
   document.documentElement.dataset.theme=t;
@@ -946,6 +1409,7 @@ function setTheme(t,init){
   $('#themeBtn').innerHTML=t==='dark'?'☀ Light mode':'🌙 Dark mode';
   const c=$('#tl').value;
   if(init||c==='light'||c==='dark'||c==='osm'){ $('#tl').value=t==='dark'?'dark':'light'; setBase($('#tl').value); }
+  if($('#cmp').classList.contains('on')) renderCmp();
 }
 let _th; try{_th=localStorage.getItem('mpobtheme')}catch(e){}
 if(!_th) _th=(window.matchMedia&&matchMedia('(prefers-color-scheme:dark)').matches)?'dark':'light';
