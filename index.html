@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<title>MPOB LoRa Dashboard</title>
+<title>DMAPS MPOB LoRa Dashboard</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
 <style>
 :root{--bg:#f3f5f7;--panel:#fff;--soft:#f1f5f4;--bd:#dde3e6;--tx:#0f1b24;--mut:#667780;--ac:#0b7a5c;--acfg:#fff;--rail:#0e2a24;--railtx:#cfe3dc;
@@ -104,16 +104,39 @@ aside h3{margin-top:0}
 .gp{display:grid;grid-template-columns:64px minmax(180px,1fr) auto minmax(160px,auto);gap:8px;align-items:center;margin:8px 0}
 .gp input{font:inherit;padding:6px 8px;border:1px solid var(--bd);border-radius:7px;background:var(--inp);color:var(--tx);width:100%}
 @media(max-width:700px){.gp{grid-template-columns:64px 1fr}.gp .h{grid-column:1/-1}}
+/* ---- Signal Test tab ---- */
+#sgmap{height:70vh;min-height:440px;border-radius:14px;background:var(--soft);border:1px solid var(--bd);position:relative}
+#sig aside{max-height:70vh}
+#sig h3{margin:0 0 8px;font-size:14px}
+.gwi{background:none;border:0}
+.gwm{display:inline-block;padding:2px 8px;border-radius:99px;color:#fff;font:700 11px/1.35 system-ui,sans-serif;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.45);background:#64748b;white-space:nowrap;cursor:grab}
+.gwm.V3{background:#d97706}.gwm.V4{background:#2563eb}.gwm.rel{border-style:dashed;border-radius:6px}
+.rl{background:none;border:0;font:700 10px/12px system-ui,sans-serif;color:#ea580c;text-align:center;text-shadow:0 0 3px var(--panel),0 0 3px var(--panel)}
+#sg-table,#sg-seq{width:100%;border-collapse:collapse;font-size:13px;white-space:nowrap}
+#sg-table th,#sg-seq th{background:var(--soft);position:sticky;top:0;padding:9px 10px;text-align:left;border-bottom:2px solid var(--bd);color:var(--mut);font-size:12px;z-index:2}
+#sg-table td,#sg-seq td{padding:6px 10px;border-bottom:1px solid var(--bd)}
+#sg-table tr[data-k],#sg-seq tr[data-k]{cursor:pointer}
+#sg-table tr[data-k]:hover,#sg-seq tr[data-k]:hover{background:var(--soft)}
+#sg-table tr.sel td,#sg-seq tr.sel td{background:var(--okbg)}
+#sg-seq td.lost{color:var(--x);font-weight:700;background:var(--xbg)}
+#sg-seq td.sep,#sg-seq th.sep{border-left:2px solid var(--bd)}
+.sgbox{background:var(--soft);padding:8px;border-radius:6px;margin-bottom:10px}
+#sgBat .nt td,#sgBat .nt th{padding:5px 8px}
+#sgBat tr.ld td{background:var(--okbg)}
+.rec{display:inline-flex;align-items:center;gap:6px;font-weight:600}
+.rec i{width:10px;height:10px;border-radius:50%;background:#dc2626;display:inline-block}
+.bh{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
 </style>
 </head>
 <body>
 <div class="app">
 <nav class="rail">
-  <div class="brand"><div class="logo">📡</div><div><b>MPOB</b><span>LoRa Dashboard</span></div></div>
+  <div class="brand"><div class="logo">📡</div><div><b>DMAPS MPOB</b><span>LoRa Dashboard</span></div></div>
   <button class="nv on" data-v="dash" data-t="Overview" data-s="Block progress and field verification">▦ &nbsp;Overview</button>
   <button class="nv" data-v="ed" data-t="Map Editor" data-s="Plant grid, tree IDs and live tree status">◎ &nbsp;Map Editor</button>
   <button class="nv" data-v="raw" data-t="Raw Data" data-s="Every LoRa upload received from the gateway">☰ &nbsp;Raw Data</button>
   <button class="nv" data-v="cmp" data-t="Hardware Compare" data-s="Heltec V3 vs V4 signal performance">📊 &nbsp;Hardware Compare</button>
+  <button class="nv" data-v="sig" data-t="Signal Test" data-s="GPS signal tests: no QR code needed, each upload's own position is the point">📶 &nbsp;Signal Test</button>
   <div class="grp">
     <small>GPS validation</small>
     <label title="An upload only counts for a tree if its GPS is within this distance of the mapped tree"><input type="checkbox" id="req" checked> Require GPS ≤ <input type="number" id="tol" min="1" max="200" step="1" value="10"> m</label>
@@ -132,7 +155,7 @@ aside h3{margin-top:0}
 <main>
 <div class="top">
   <div><h2 id="pt">Overview</h2><p id="ps">Block progress and field verification</p></div>
-  <span class="flow">MPOB LoRa Dashboard</span>
+  <span class="flow">Digital Management Plantation System</span>
 </div>
 
 <div id="dash" class="v on"></div>
@@ -176,6 +199,38 @@ aside h3{margin-top:0}
     <p class="h" style="margin:0 0 6px">Enter where each gateway is placed (paste "lat, lng" from Google Maps, or use your phone's location). This gives the distance chart and each gateway's height from open terrain data.</p>
     <div id="cmPos"></div>
     <p class="h" id="cmElevNote" style="margin:6px 0 0"></p>
+  </div>
+</div>
+
+<div id="sig" class="v">
+  <div class="tl">
+    <select id="sgSess" style="width:210px"></select>
+    <select id="sgBy" style="width:150px"><option value="gw">Compare gateways</option><option value="node">Compare nodes</option><option value="relay">Compare relays</option></select>
+    <select id="sgGw" style="width:130px"><option value="all">All devices</option><option value="V3">V3 only</option><option value="V4">V4 only</option></select>
+    <select id="sgPath" style="width:130px"><option value="all">All paths</option><option value="D">Direct</option><option value="R">Via repeater</option></select>
+    <select id="sgNode" style="width:120px"></select>
+    <label>Colour by <select id="sgCol" style="width:110px"><option value="rssi">RSSI</option><option value="snr">SNR</option><option value="gw">Device</option><option value="path">Path</option></select></label>
+    <select id="sgBase" style="width:150px"><option value="osm">OpenStreetMap</option><option value="light">Light (CARTO)</option><option value="dark">Dark (CARTO)</option><option value="sat">Esri Satellite</option><option value="google_sat">Google Satellite</option><option value="google_hybrid">Google Hybrid</option></select>
+    <span class="sp"><button class="b on" id="sgLines">〰 Connect points: On</button><button class="b" id="sgFit">🔎 Zoom to points</button><button class="b" id="sgCsv">Export CSV</button></span>
+  </div>
+  <div class="tl">
+    <span class="h">Place on map (drag a marker to move it, click it to remove it):</span>
+    <button class="b" data-place="GWV3">GWV3</button><button class="b" data-place="GWV4">GWV4</button><button class="b" data-place="RV3">RV3</button><button class="b" data-place="RV4">RV4</button>
+    <button class="b on" id="sgRings">⭕ Distance rings: On</button>
+    <span id="sgMsg" class="h"></span>
+  </div>
+  <div class="card" id="sgBat" style="margin-bottom:8px"></div>
+  <div class="lg" id="sgLg"></div>
+  <div class="lay"><div id="sgmap"></div><aside class="card" id="sgSide"></aside></div>
+  <div class="cmp-grid" style="margin-top:14px">
+    <div class="card"><h3>Signal vs distance</h3><div class="cv"><canvas id="sgCv"></canvas></div></div>
+    <div class="card"><h3>By distance band</h3><div id="sgBand" style="overflow:auto"></div></div>
+  </div>
+  <div class="card" style="margin-top:14px;padding:0">
+    <div class="tl" style="margin:0;border:0;border-bottom:1px solid var(--bd);border-radius:14px 14px 0 0">
+      <button class="b on" data-tb="seq">Sequence</button><button class="b" data-tb="raw">All uploads</button><span id="sgSeqInfo" class="h"></span>
+    </div>
+    <div style="overflow:auto;max-height:55vh"><table id="sg-seq"></table><table id="sg-table" style="display:none"></table></div>
   </div>
 </div>
 
@@ -298,6 +353,7 @@ document.querySelectorAll('.nv').forEach(b=>b.onclick=()=>{
   if(b.dataset.v=='ed'){ map.invalidateSize(); load(); }
   else if(b.dataset.v=='raw') renderRaw();
   else if(b.dataset.v=='cmp') renderCmp();
+  else if(b.dataset.v=='sig') renderSig();
   else dash();
 });
 
@@ -390,7 +446,7 @@ $('#tglView').onclick=()=>{
    ============================================================ */
 const SB_URL='https://bjzlkfhiwmbcvtbpmnen.supabase.co', SB_KEY='sb_publishable_1nlPAlImP6EZHSCd0dXXig_gPxlPvFx';
 const sbH={apikey:SB_KEY,Authorization:'Bearer '+SB_KEY};
-let ALL=[], RF={}, BY={}, GW=[], GWerr='';     // RF = newest record per qr (radio health), BY = all records per qr (newest first)
+let ALL=[], RF={}, BY={}, GW=[], GWerr='', TST=[], TSTerr='', BAT=[], BATerr='';     // RF = newest record per qr (radio health), BY = all records per qr (newest first)
 
 const up=s=>String(s??'').trim().toUpperCase();
 const roleOf=x=>up(x.user_type);
@@ -423,8 +479,8 @@ function gwChip(){
 }
 function netHtml(){
   gwChip();
-  const RP={}, ND={};
-  ALL.forEach(x=>{
+  const RP={}, ND={}, NA=TST.length?ALL.concat(TST).sort((a,b)=>new Date(b.created_at)-new Date(a.created_at)):ALL;
+  NA.forEach(x=>{
     const p=pathOf(x);
     if(p.k==='R'){
       const id=p.rid||'(unknown)', o=RP[id]||(RP[id]={n:0,nodes:new Set(),last:x.created_at,rs:0,ss:0,c:0});
@@ -444,7 +500,7 @@ function netHtml(){
     || empty(5,'No relayed packets yet (needs relay_id / hop_count in uploads).');
   const nd=Object.entries(ND).map(([id,o])=>`<tr><td><b>${esc(id)}</b></td><td>${pathBadge(o.r)}</td><td>${ago(o.last)}</td><td>${o.n}</td><td>${o.r.rssi??'–'} / ${o.r.snr??'–'}</td></tr>`).join('')
     || empty(5,'No node_id in uploads yet.');
-  const last=ALL.length?`Last upload received ${ago(ALL[0].created_at)}`:'No uploads yet';
+  const last=NA.length?`Last upload received ${ago(NA[0].created_at)}`:'No uploads yet';
   return `<div class="net">
     <div class="card"><h3>📡 Gateways</h3><table class="nt"><tr><th>Gateway</th><th>Status</th><th>Last seen</th><th>RSSI</th><th>Note</th></tr>${gw}</table><p class="h" style="margin:8px 0 0">${last}</p></div>
     <div class="card"><h3>🔁 Repeaters / Bridges</h3><table class="nt"><tr><th>Repeater</th><th>Packets</th><th>Nodes</th><th>Last seen</th><th>RSSI / SNR</th></tr>${rp}</table><p class="h" style="margin:8px 0 0">RSSI/SNR is measured at the gateway (last hop).</p></div>
@@ -925,7 +981,7 @@ $('#treeDown').onclick=()=>pullTrees();
 async function syncSupabase(){
   msg('Syncing with Supabase…');
   try{
-    const r=await fetch(`${SB_URL}/rest/v1/harvest_data?select=*&order=created_at.desc&limit=5000`,{headers:sbH});
+    const r=await fetch(`${SB_URL}/rest/v1/harvest_data?select=*&or=(user_type.neq.T,user_type.is.null)&order=created_at.desc&limit=5000`,{headers:sbH});
     if(!r.ok) throw new Error('HTTP '+r.status);
     RF={}; BY={};
     ALL=await r.json();
@@ -938,6 +994,15 @@ async function syncSupabase(){
       const g=await fetch(`${SB_URL}/rest/v1/gateway_status?select=*&order=gateway_id`,{headers:sbH});
       GW=g.ok?await g.json():[]; GWerr=g.ok?'':'HTTP '+g.status;
     }catch(e){ GW=[]; GWerr='offline'; }
+    try{
+      const t=await fetch(`${SB_URL}/rest/v1/harvest_data?select=*&user_type=eq.T&order=created_at.desc&limit=2000`,{headers:sbH});
+      if(t.ok){ mergeT(await t.json()); TSTerr=''; } else TSTerr='HTTP '+t.status;
+    }catch(e){ TSTerr='offline'; }
+    try{
+      const bt=await fetch(`${SB_URL}/rest/v1/test_batches?select=*&order=started_at.desc`,{headers:sbH});
+      if(bt.ok){ BAT=await bt.json(); BATerr=''; } else { BATerr='HTTP '+bt.status; }
+    }catch(e){ BATerr='offline'; }
+    if(typeof sgEnsure==='function') sgEnsure();
     AC.clear();
     msg(`Synced ${ALL.length} records / ${Object.keys(RF).length} QR IDs`);
     refreshAll();
@@ -949,6 +1014,7 @@ function refreshAll(){
   dash();
   if($('#raw').classList.contains('on')) renderRaw();
   if($('#cmp').classList.contains('on')) renderCmp();
+  if($('#sig').classList.contains('on')) renderSig();
   if($('#ed').classList.contains('on')){
     if(isTableView){ if(inTableEdit()) pendingRefresh=true; else renderTable(); }
     else { draw(); side(); }
@@ -1402,14 +1468,420 @@ function initCmp(){
 }
 initCmp();
 
+/* ============ Signal Test tab (user type T - no QR code needed) ============ */
+const SG={map:null,layer:null,tiles:null,sel:null,place:null,rings:true,lines:true,col:'rssi',by:'gw',sess:'all',gw:'all',path:'all',node:'all',tbl:'seq',fit:true,D:null,bm:{},fetched:new Set(),ready:false,loaded:new Set()};
+let _sl=null; try{ _sl=JSON.parse(localStorage.getItem('sgloaded')); }catch(e){}
+if(Array.isArray(_sl)) _sl.forEach(i=>SG.loaded.add(i));
+const SG_GRACE=20000, SGP={gw:'GW',node:'N',relay:'R'};
+const SGC={V3:HWC.V3,V4:HWC.V4,'?':'#64748b'}, SGN=h=>h==='?'?'Other':h;
+const RSSI_B=[[-90,'#16a34a','≥ −90'],[-100,'#84cc16','−90 to −100'],[-110,'#eab308','−100 to −110'],[-120,'#f97316','−110 to −120'],[-1e9,'#dc2626','< −120']];
+const SNR_B=[[0,'#16a34a','≥ 0'],[-5,'#84cc16','0 to −5'],[-10,'#eab308','−5 to −10'],[-15,'#f97316','−10 to −15'],[-1e9,'#dc2626','< −15']];
+const bandClr=(B,v)=>{ for(const b of B) if(v>=b[0]) return b[1]; return B[B.length-1][1]; };
+const sgLabel=r=>{ const t=String(r.qr_id??'').trim(), m=t.match(/^(.*)[-_](\d+)$/); return (m&&m[1])?{s:m[1],n:+m[2]}:{s:t||'(no label)',n:null}; };
+const rk=r=>r.created_at+'|'+r.gateway_id+'|'+r.qr_id;
+const fmtD=d=>d==null?'–':d<1000?d.toFixed(0)+' m':(d/1000).toFixed(2)+' km';
+const fmtDur=ms=>{ const s=Math.max(0,Math.round(ms/1000)), h=Math.floor(s/3600), m=Math.floor(s%3600/60); return (h?h+':'+String(m).padStart(2,'0'):m)+':'+String(s%60).padStart(2,'0'); };
+const sgStep=mx=>[25,50,100,250,500,1000,2000,5000,10000].find(s=>mx/s<=6)||10000;
+const bearing=(la1,lo1,la2,lo2)=>{ const d=Math.PI/180, y=Math.sin((lo2-lo1)*d)*Math.cos(la2*d), x=Math.cos(la1*d)*Math.sin(la2*d)-Math.sin(la1*d)*Math.cos(la2*d)*Math.cos((lo2-lo1)*d); return (Math.atan2(y,x)/d+360)%360; };
+const compass=b=>['N','NE','E','SE','S','SW','W','NW'][Math.round(b/45)%8];
+const sgRunning=()=>BAT.find(b=>!b.ended_at);
+const sgBM=()=>{ SG.bm={}; BAT.forEach(b=>SG.bm[b.id]=b); };
+const sgSave=()=>{ try{ localStorage.setItem('sgloaded',JSON.stringify([...SG.loaded])); }catch(e){} };
+const sbJ=(m,path,body,prefer)=>fetch(`${SB_URL}/rest/v1/${path}`,{method:m,headers:{...sbH,'Content-Type':'application/json',Prefer:prefer||'return=representation'},body:body===undefined?undefined:JSON.stringify(body)});
+
+/* keep test rows we already have, add new ones (older batches are fetched on demand) */
+function mergeT(rows){
+  const m=new Map(); TST.forEach(r=>m.set(r.id??rk(r),r)); rows.forEach(r=>m.set(r.id??rk(r),r));
+  TST=[...m.values()].sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
+}
+/* which batch does an upload belong to? the latest batch started before it (small grace after End for late arrivals) */
+const sgAssign=()=>BAT.map(b=>({id:b.id,s:new Date(b.started_at).getTime(),e:b.ended_at?new Date(b.ended_at).getTime()+SG_GRACE:Infinity})).sort((a,c)=>c.s-a.s);
+const sgBatchOf=(t,B)=>{ for(const o of B) if(t>=o.s) return t<=o.e?o.id:'none'; return 'none'; };
+const sgPos=(bt,id)=>{ const b=bt!=='none'?SG.bm[bt]:null, k=gpKey(id); if(b&&b.pos&&Object.prototype.hasOwnProperty.call(b.pos,k)) return b.pos[k]||null; return GPOS[k]||null; };
+
+function sgDecor(r,B){
+  const l=sgLabel(r), g=recGPS(r), t=new Date(r.created_at).getTime(), bt=sgBatchOf(t,B), p=sgPos(bt,r.gateway_id), hw=hwOf(r[CMP_FIELD[SG.by]])||'?';
+  let d=null, b=null; if(g&&p){ d=hav(p.lat,p.lng,g[0],g[1]); b=bearing(p.lat,p.lng,g[0],g[1]); }
+  return {r,s:l.s,n:l.n,hw,g,p,d,b,k:rk(r),pk:pathOf(r).k,bt,t};
+}
+/* order ("turutan") inside each batch+session: label number if every upload has one, else rank by send time */
+function sgOrder(list){
+  const G={}; list.forEach(x=>{ x.gk=x.bt+'|'+x.s; (G[x.gk]=G[x.gk]||[]).push(x); });
+  Object.values(G).forEach(a=>{
+    if(a.every(x=>x.n!=null)){ a.forEach(x=>{ x.o=x.n; }); return; }
+    const P={};
+    a.forEach(x=>{ const r=x.r, ts=+r.device_timestamp, t=ts?(ts<1e12?ts*1000:ts):x.t, k=String(r.node_id||'')+'|'+(ts||Math.round(t/5000));
+      const o=P[k]||(P[k]={t,xs:[]}); o.xs.push(x); if(t<o.t) o.t=t; });
+    Object.values(P).sort((p,q)=>p.t-q.t).forEach((p,i)=>p.xs.forEach(x=>{ x.o=i+1; }));
+  });
+}
+function sgData(){
+  sgBM();
+  const B=sgAssign(), all=TST.map(r=>sgDecor(r,B)), counts={}; all.forEach(x=>{ counts[x.bt]=(counts[x.bt]||0)+1; });
+  const loaded=all.filter(x=>SG.loaded.has(x.bt));
+  const sm={}; loaded.forEach(x=>{ const o=sm[x.s]||(sm[x.s]={s:x.s,n:0,last:0}); o.n++; if(x.t>o.last) o.last=x.t; });
+  const sessions=Object.values(sm).sort((a,b)=>b.last-a.last);
+  if(SG.sess!=='all'&&!sm[SG.sess]) SG.sess='all';
+  const nodes=[...new Set(loaded.map(x=>String(x.r.node_id||'').trim()).filter(Boolean))].sort();
+  if(SG.node!=='all'&&!nodes.includes(SG.node)) SG.node='all';
+  const forDel=loaded.filter(x=>(SG.sess==='all'||x.s===SG.sess)&&(SG.node==='all'||String(x.r.node_id||'').trim()===SG.node));
+  sgOrder(forDel);
+  const rows=forDel.filter(x=>(SG.gw==='all'||x.hw===SG.gw)&&(SG.path==='all'||x.pk===SG.path));
+  return {sessions,nodes,forDel,rows,counts,loadedN:loaded.length};
+}
+function sgDelivery(list){
+  const S={};
+  list.forEach(x=>{ const o=S[x.gk]||(S[x.gk]={mn:1e9,mx:-1,h:{}}); if(x.o<o.mn) o.mn=x.o; if(x.o>o.mx) o.mx=x.o; (o.h[x.hw]=o.h[x.hw]||new Set()).add(x.o); });
+  let exp=0; const heard={};
+  Object.values(S).forEach(o=>{ exp+=o.mx-o.mn+1; Object.keys(o.h).forEach(h=>{ heard[h]=(heard[h]||0)+o.h[h].size; }); });
+  return {exp,heard};
+}
+/* one entry per packet in order, with each device's reading (or lost) */
+function sgSeqModel(D){
+  const hsAll=['V3','V4','?'].filter(h=>D.forDel.some(x=>x.hw===h)), hs=SG.gw==='all'?hsAll:hsAll.filter(h=>h===SG.gw);
+  const E={}, G={};
+  D.forDel.forEach(x=>{
+    const k=x.gk+'|'+x.o, e=E[k]||(E[k]={gk:x.gk,bt:x.bt,s:x.s,o:x.o,t:x.t,g:null,by:{},rep:null});
+    if(x.t<e.t) e.t=x.t; if(!e.by[x.hw]) e.by[x.hw]=x; if(!e.g&&x.g) e.g=x.g; if(!e.rep) e.rep=x;
+    const g=G[x.gk]||(G[x.gk]={mn:1e9,mx:-1,bt:x.bt,s:x.s}); if(x.o<g.mn) g.mn=x.o; if(x.o>g.mx) g.mx=x.o;
+  });
+  Object.keys(G).forEach(gk=>{ const g=G[gk]; if(g.mx-g.mn>5000) return;
+    for(let i=g.mn;i<=g.mx;i++){ const k=gk+'|'+i; if(!E[k]) E[k]={gk,bt:g.bt,s:g.s,o:i,t:null,g:null,by:{},rep:null}; } });
+  const st=bt=>SG.bm[bt]?new Date(SG.bm[bt].started_at).getTime():0;
+  const entries=Object.values(E).sort((a,b)=>st(a.bt)-st(b.bt)||(a.s<b.s?-1:a.s>b.s?1:0)||a.o-b.o);
+  const stats={}; hs.forEach(h=>{ const n=entries.filter(e=>e.by[h]).length; stats[h]={heard:n,total:entries.length}; });
+  return {hs,entries,stats};
+}
+/* segments joining consecutive points of one device inside one batch+session */
+function sgLineModel(rows){
+  const G={}; rows.forEach(x=>{ if(!x.g) return; (G[x.gk+'|'+x.hw]=G[x.gk+'|'+x.hw]||[]).push(x); });
+  const segs=[];
+  Object.values(G).forEach(a=>{
+    a.sort((p,q)=>p.o-q.o); const u=[]; a.forEach(x=>{ if(!u.length||u[u.length-1].o!==x.o) u.push(x); });
+    for(let i=1;i<u.length;i++) segs.push({a:u[i-1],b:u[i],hw:u[i].hw,gap:u[i].o-u[i-1].o>1});
+  });
+  return segs;
+}
+
+/* ---- map ---- */
+function sgBase(k){
+  if(SG.tiles) SG.map.removeLayer(SG.tiles); SG.tiles=null; if(!BM[k]) return;
+  SG.tiles=L.tileLayer(BM[k][0],{maxZoom:21,maxNativeZoom:BM[k][2]||18,attribution:BM[k][1]}).addTo(SG.map); SG.tiles.bringToBack();
+}
+const sgOne=()=>{ const ids=[...SG.loaded].filter(i=>i!=='none'&&SG.bm[i]); return ids.length===1?SG.bm[ids[0]]:null; };
+function sgMarkPos(){
+  const one=sgOne(), o={};
+  ['GWV3','GWV4','RV3','RV4'].forEach(id=>{ const p=one?sgPos(one.id,id):GPOS[id]; if(p) o[id]=p; });
+  return o;
+}
+function placePos(id,lat,lng){
+  const one=sgOne(), run=sgRunning();
+  if(one){ one.pos=Object.assign({},one.pos||{},{[id]:{lat,lng}}); sbJ('PATCH',`test_batches?id=eq.${one.id}`,{pos:one.pos},'return=minimal').catch(()=>{}); }
+  if(!one||(run&&one.id===run.id)){
+    GPOS[id]={lat,lng};
+    try{ localStorage.setItem('palmgwpos',JSON.stringify(GPOS)); }catch(e){}
+    const i=document.querySelector(`[data-gp=${id}]`); if(i) i.value=lat.toFixed(6)+', '+lng.toFixed(6);
+    showElev(id);
+  }
+  SG.fit=false; renderSig();
+}
+function removePos(id){
+  const one=sgOne(), run=sgRunning();
+  if(one){ one.pos=Object.assign({},one.pos||{},{[id]:null}); sbJ('PATCH',`test_batches?id=eq.${one.id}`,{pos:one.pos},'return=minimal').catch(()=>{}); }
+  if(!one||(run&&one.id===run.id)){
+    delete GPOS[id]; GEL[id]=null;
+    try{ localStorage.setItem('palmgwpos',JSON.stringify(GPOS)); }catch(e){}
+    const i=document.querySelector(`[data-gp=${id}]`); if(i) i.value='';
+    const e=$('#gpe-'+id); if(e) e.textContent='';
+    elevNote();
+  }
+  SG.fit=false; renderSig();
+}
+function sgInit(){
+  const c=GPOS.GWV4||GPOS.GWV3;
+  SG.map=L.map('sgmap',{preferCanvas:true,maxZoom:21}).setView(c?[c.lat,c.lng]:[3.52,102.42],c?16:15);
+  SG.layer=L.layerGroup().addTo(SG.map);
+  $('#sgBase').value='google_sat'; sgBase('google_sat');
+  SG.map.on('click',e=>{
+    if(SG.place){ const id=SG.place; SG.place=null; $('#sgmap').style.cursor=''; $('#sgMsg').textContent=''; document.querySelectorAll('[data-place]').forEach(b=>b.classList.remove('on')); placePos(id,e.latlng.lat,e.latlng.lng); }
+    else if(SG.sel){ SG.sel=null; renderSig(); }
+  });
+  SG.map.on('zoomend',()=>{ if(SG.D&&$('#sig').classList.contains('on')) sgDrawMap(SG.D); });
+}
+function sgLegend(){
+  const P=SGP[SG.by];
+  const items=SG.col==='rssi'?RSSI_B.map(b=>[b[1],b[2]+' dBm']):SG.col==='snr'?SNR_B.map(b=>[b[1],b[2]+' dB']):
+    SG.col==='gw'?[[SGC.V3,P+'V3'],[SGC.V4,P+'V4']]:[['#16a34a','Direct'],['#a855f7','Via repeater'],['#94a3b8','Unknown']];
+  $('#sgLg').innerHTML=items.map(([c,l])=>`<span><i style="background:${c}"></i>${l}</span>`).join('')
+    +`<span>Large dot / thick line = ${P}V4 · small dot / thin line = ${P}V3 · dashed segment = packet(s) missed · zoom in for order numbers</span>`;
+}
+function sgDrawMap(D){
+  const Ly=SG.layer; Ly.clearLayers();
+  const wp=D.rows.filter(x=>x.g), mk_=sgMarkPos(), ids=Object.keys(mk_), z=SG.map.getZoom();
+  if(SG.rings){
+    const ds=D.rows.map(x=>x.d).filter(v=>v!=null), mx=ds.length?Math.max(...ds):500, step=sgStep(mx), nr=Math.max(2,Math.min(8,Math.ceil(mx/step))), seen=[];
+    ['GWV3','GWV4'].filter(id=>mk_[id]).forEach(id=>{
+      const p=mk_[id]; if(seen.some(q=>hav(q.lat,q.lng,p.lat,p.lng)<5)) return; seen.push(p);
+      for(let i=1;i<=nr;i++){ const r=i*step;
+        L.circle([p.lat,p.lng],{radius:r,color:'#f97316',weight:1.5,dashArray:'5 5',fill:false,interactive:false}).addTo(Ly);
+        L.marker([p.lat+r/111320,p.lng],{interactive:false,icon:L.divIcon({className:'rl',html:r>=1000?(r/1000)+' km':r+' m',iconSize:[44,12],iconAnchor:[22,6]})}).addTo(Ly);
+      }
+    });
+  }
+  const both=SG.gw==='all'&&new Set(wp.map(x=>x.hw)).size>1, rad=x=>both?(x.hw==='V4'?8:x.hw==='V3'?5:6):6;
+  if(SG.lines) sgLineModel(wp).forEach(s=>{
+    const big=both&&s.hw==='V4', thin=both&&s.hw==='V3';
+    L.polyline([s.a.g,s.b.g],{color:SGC[s.hw],weight:big?7:thin?2.5:3,opacity:big?.45:.9,dashArray:s.gap?'3 7':null,interactive:false}).addTo(Ly);
+  });
+  [...wp].sort((a,b)=>rad(b)-rad(a)).forEach(x=>{
+    const r=x.r, sel=SG.sel===x.k,
+      fill=SG.col==='rssi'?bandClr(RSSI_B,+r.rssi):SG.col==='snr'?bandClr(SNR_B,+r.snr):SG.col==='gw'?SGC[x.hw]:({D:'#16a34a',R:'#a855f7'}[x.pk]||'#94a3b8');
+    const m=L.circleMarker(x.g,{radius:sel?rad(x)+3:rad(x),color:sel?'#000':'#111',weight:sel?3:1,fillColor:fill,fillOpacity:.95,bubblingMouseEvents:false})
+      .bindTooltip(`#${x.o} · ${esc(x.s)} · ${SGN(x.hw)} · ${r.rssi} dBm / ${r.snr} dB${x.d!=null?' · '+fmtD(x.d):''}`,{sticky:true})
+      .on('click',()=>{ SG.sel=x.k; renderSig(); }).addTo(Ly);
+    if(z>=18&&wp.length<=400&&(!both||x.hw!=='V4')) m.bindTooltip(String(x.o),{permanent:true,direction:'top',offset:[0,-4],className:'nl'});
+  });
+  const sx=SG.sel&&D.forDel.find(v=>v.k===SG.sel);
+  if(sx&&sx.g&&sx.p) L.polyline([[sx.p.lat,sx.p.lng],sx.g],{color:'#0ea5e9',weight:2,dashArray:'5 5',interactive:false}).addTo(Ly);
+  ids.forEach(id=>{
+    const p=mk_[id], hw=hwOf(id);
+    const m=L.marker([p.lat,p.lng],{draggable:true,zIndexOffset:1000,icon:L.divIcon({className:'gwi',html:`<span class="gwm ${hw||''} ${id[0]==='R'?'rel':''}">${id}</span>`,iconSize:[56,20],iconAnchor:[28,10]})}).addTo(Ly);
+    m.bindTooltip('Drag to move · click for options');
+    const box=document.createElement('div'); box.innerHTML=`<b>${id}</b><br><span class="h">Drag the marker to move it</span><br>`;
+    const rm=document.createElement('button'); rm.className='b'; rm.style.marginTop='6px'; rm.textContent='🗑 Remove marker';
+    rm.onclick=()=>{ SG.map.closePopup(); removePos(id); }; box.appendChild(rm); m.bindPopup(box);
+    m.on('contextmenu',()=>{ if(confirm('Remove marker '+id+'?')) removePos(id); });
+    m.on('dragend',()=>{ const q=m.getLatLng(); placePos(id,q.lat,q.lng); });
+  });
+  if(SG.fit){
+    const pts=wp.map(x=>x.g).concat(ids.map(id=>[mk_[id].lat,mk_[id].lng]));
+    if(pts.length){ SG.map.fitBounds(L.latLngBounds(pts),{padding:[50,50],maxZoom:19}); SG.fit=false; }
+  }
+  sgLegend();
+}
+
+/* ---- batches (start / end / load / unload) ---- */
+function sgBatUI(D){
+  const el=$('#sgBat'), run=sgRunning();
+  if(BATerr){ el.innerHTML=`<b>Test batches</b><p class="h" style="margin:6px 0 0">Could not read the <b>test_batches</b> table (${esc(BATerr)}). Create it with the SQL, then press Sync now.</p>`; return; }
+  const top=run
+    ?`<span class="rec"><i></i> Recording: <b>${esc(run.name)}</b> · ${fmtDur(Date.now()-new Date(run.started_at))} · ${D.counts[run.id]||0} uploads</span><button class="b" id="sgEnd" style="border-color:#dc2626;color:#dc2626">■ End test</button>`
+    :`<button class="b p" id="sgStart">▶ Start test</button><span class="h">Starts a new batch. Every test upload that arrives while it runs is saved in it.</span>`;
+  const row=(id,name,sub,s,e,n,btn)=>`<tr class="${SG.loaded.has(id)?'ld':''}"><td><input type="checkbox" data-ld="${esc(id)}" ${SG.loaded.has(id)?'checked':''}></td><td><b>${esc(name)}</b>${sub}</td><td>${s}</td><td>${e}</td><td>${n}</td><td>${btn}</td></tr>`;
+  const bs=BAT.map(b=>{ const s=new Date(b.started_at), e=b.ended_at?new Date(b.ended_at):null, isRun=!b.ended_at;
+    return row(b.id,b.name,isRun?' <span class="no">● recording</span>':'',s.toLocaleString(),e?e.toLocaleString():'–',
+      `${D.counts[b.id]||0} · ${fmtDur((e||Date.now())-s)}`,`<button class="b" data-rn="${esc(b.id)}" title="Rename">✎</button> <button class="b" data-del="${esc(b.id)}" title="Delete batch entry (data is kept)">🗑</button>`); }).join('');
+  const ub=D.counts.none?row('none','Unbatched uploads',' <span class="h">(outside any test)</span>','–','–',D.counts.none,''):'';
+  el.innerHTML=`<div class="bh"><b>Test batches</b>${top}<span class="sp"><button class="b" id="sgLoadAll">Load all</button><button class="b" id="sgUnload">Unload all</button></span></div>
+    ${bs||ub?`<div style="overflow:auto;max-height:200px"><table class="nt"><tr><th>Load</th><th>Batch</th><th>Started</th><th>Ended</th><th>Uploads · length</th><th></th></tr>${bs}${ub}</table></div>`:'<p class="h" style="margin:0">No batches yet. Press Start test, run the test with the app, then End test.</p>'}
+    <p class="h" style="margin:6px 0 0">Tick a batch to show it on the map, untick to unload it. Nothing is deleted: ending or unloading only changes what is shown.</p>`;
+}
+async function sgStart(){
+  if(sgRunning()) return;
+  const n=BAT.length+1, d=new Date(), name=prompt('Name this test',`Test ${n} · ${d.toLocaleDateString([],{day:'numeric',month:'short'})} ${d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}`);
+  if(name===null||!name.trim()) return;
+  const pos={}; ['GWV3','GWV4','RV3','RV4'].forEach(id=>{ if(GPOS[id]) pos[id]={lat:GPOS[id].lat,lng:GPOS[id].lng}; });
+  try{
+    const r=await sbJ('POST','test_batches',{name:name.trim(),pos}); if(!r.ok) throw new Error('HTTP '+r.status);
+    const row=(await r.json())[0]; BAT.unshift(row); SG.loaded.add(row.id); SG.fetched.add(row.id); sgSave(); SG.fit=true; renderSig();
+  }catch(e){ alert('Could not start the test: '+e.message+'. Is the test_batches table created with an insert policy?'); }
+}
+async function sgEnd(){
+  const run=sgRunning(); if(!run) return;
+  if(!confirm(`End "${run.name}"? Its data stays saved in this batch.`)) return;
+  const pos=Object.assign({},run.pos||{}); ['GWV3','GWV4','RV3','RV4'].forEach(id=>{ if(GPOS[id]&&!(id in pos)) pos[id]={lat:GPOS[id].lat,lng:GPOS[id].lng}; });
+  const end=new Date().toISOString();
+  try{
+    const r=await sbJ('PATCH',`test_batches?id=eq.${run.id}`,{ended_at:end,pos},'return=minimal'); if(!r.ok) throw new Error('HTTP '+r.status);
+    run.ended_at=end; run.pos=pos; renderSig(); setTimeout(syncSupabase,SG_GRACE+2000);
+  }catch(e){ alert('Could not end the test: '+e.message+'. Is there an update policy on test_batches?'); }
+}
+async function sgFetchBatch(id){
+  if(id==='none'||SG.fetched.has(id)) return;
+  const b=SG.bm[id]; if(!b) return;
+  let q=`created_at=gte.${encodeURIComponent(new Date(b.started_at).toISOString())}`;
+  if(b.ended_at) q+=`&created_at=lte.${encodeURIComponent(new Date(new Date(b.ended_at).getTime()+SG_GRACE).toISOString())}`;
+  try{ const r=await fetch(`${SB_URL}/rest/v1/harvest_data?select=*&user_type=eq.T&${q}&order=created_at.desc&limit=5000`,{headers:sbH});
+    if(r.ok){ mergeT(await r.json()); SG.fetched.add(id); } }catch(e){}
+}
+async function sgEnsure(){
+  sgBM();
+  if(!BATerr){
+    if(!SG.ready){ SG.ready=true; if(_sl===null){ const run=sgRunning()||BAT[0]; if(run){ SG.loaded.add(run.id); sgSave(); } } }
+    [...SG.loaded].forEach(i=>{ if(i!=='none'&&!SG.bm[i]) SG.loaded.delete(i); });
+    for(const id of [...SG.loaded]) await sgFetchBatch(id);
+  }
+  if($('#sig').classList.contains('on')) renderSig();
+}
+async function syncTests(){
+  const run=sgRunning(); if(!run) return;
+  try{ const r=await fetch(`${SB_URL}/rest/v1/harvest_data?select=*&user_type=eq.T&created_at=gte.${encodeURIComponent(new Date(run.started_at).toISOString())}&order=created_at.desc&limit=5000`,{headers:sbH});
+    if(r.ok){ mergeT(await r.json()); if($('#sig').classList.contains('on')) renderSig(); } }catch(e){}
+}
+
+/* ---- side panel ---- */
+function sgPoint(x,D){
+  const r=x.r, oth=D.forDel.filter(v=>v.k!==x.k&&v.gk===x.gk&&v.o===x.o), bn=SG.bm[x.bt]?SG.bm[x.bt].name:'Unbatched';
+  if(x.g) elevOnline(x.g[0],x.g[1]).then(e=>{ const n=$('#sgEl'); if(n) n.textContent='~'+e.toFixed(0)+' m above sea level'; }).catch(()=>{});
+  return `<h3>Point ${x.o} · ${esc(x.s)}</h3><p class="h" style="margin:-4px 0 8px">${esc(bn)}</p>
+    <div class="sgbox"><b>${esc(SGN(x.hw))}</b> ${sigQ(r)}<br>
+      RSSI: <b>${r.rssi} dBm</b> · SNR: <b>${r.snr} dB</b><br>
+      Distance: <b>${fmtD(x.d)}</b>${x.b!=null?` · bearing <b>${x.b.toFixed(0)}° ${compass(x.b)}</b> from the gateway`:''}<br>
+      Gateway: ${esc(r.gateway_id||'–')} · Path: ${pathBadge(r)}${r.node_id?' · Node '+esc(r.node_id):''}<br>
+      Freq error: ${r.freq_err??'–'} Hz · Latency: ${fmtLat(latMs(r))}<br>
+      <span class="h">${new Date(r.created_at).toLocaleString()}</span></div>
+    ${oth.length?`<div class="sgbox"><b>Same packet, other device</b><br>${oth.map(o=>`${esc(SGN(o.hw))}: <b>${o.r.rssi} dBm</b> / ${o.r.snr} dB`).join('<br>')}</div>`:''}
+    <p class="h">${x.g?`GPS (${esc(r.gps_source||'?')}): ${x.g[0].toFixed(6)}, ${x.g[1].toFixed(6)} · <a href="https://www.google.com/maps?q=${x.g[0]},${x.g[1]}" target="_blank" rel="noopener">open in Maps</a><br>Height: <span id="sgEl">loading…</span>`:'This upload has no valid GPS position, so it is not on the map.'}</p>
+    <button class="b" id="sgClr" style="width:100%;justify-content:center">Clear selection</button>`;
+}
+function sgSide(D){
+  const el=$('#sgSide'), rows=D.rows;
+  if(SG.sel){ const x=D.forDel.find(v=>v.k===SG.sel); if(x){ el.innerHTML=sgPoint(x,D); $('#sgClr').onclick=()=>{ SG.sel=null; renderSig(); }; return; } SG.sel=null; }
+  if(!SG.loaded.size){
+    el.innerHTML=`<h3>Signal Test</h3><p class="h">${TSTerr?'Could not read test data ('+esc(TSTerr)+').':'No batch is loaded.'}</p>
+      <p class="h">Press <b>Start test</b>, run the test with the app (user type <b>T</b>), then <b>End test</b>. Saved batches can be loaded or unloaded with the tick boxes above the map.</p>`;
+    return;
+  }
+  const names=[...SG.loaded].map(i=>i==='none'?'Unbatched uploads':(SG.bm[i]?SG.bm[i].name:null)).filter(Boolean);
+  const nog=rows.filter(x=>!x.g).length, nod=rows.filter(x=>x.g&&x.d==null).length, dl=sgDelivery(D.forDel), by={};
+  rows.forEach(x=>{ (by[x.hw]=by[x.hw]||[]).push(x); });
+  const hs=['V3','V4','?'].filter(h=>by[h]);
+  const tr=hs.map(h=>{ const a=by[h], ds=a.map(x=>x.d).filter(v=>v!=null), dv=dl.exp?(dl.heard[h]||0)/dl.exp*100:null;
+    return `<tr><td><b>${SGN(h)}</b></td><td>${a.length}</td><td>${ds.length?fmtD(Math.max(...ds)):'–'}</td><td>${f1(avgA(a.map(x=>+x.r.rssi)))}</td><td>${f1(avgA(a.map(x=>+x.r.snr)))}</td><td>${dv==null?'–':dv.toFixed(0)+'%'}</td></tr>`; }).join('');
+  el.innerHTML=`<h3>${esc(names.join(' + ')||'Loaded data')}</h3>
+    <p class="h">${rows.length} uploads shown · ${D.sessions.length} session(s)</p>
+    <div class="sgbox"><table class="nt"><tr><th>Device</th><th>Pts</th><th>Farthest</th><th>RSSI</th><th>SNR</th><th>Delivery</th></tr>${tr||'<tr><td colspan="6" class="h">Nothing matches the filters.</td></tr>'}</table></div>
+    <p class="h">Delivery = packets this device heard ÷ packets sent (${dl.exp}). Sent comes from the label numbers (RUN1-007) or, without numbers, from what any device heard. Packets lost by every device at the start or end of a run are not counted.</p>
+    ${nog?`<p class="h">${nog} upload(s) have no valid GPS and are not on the map.</p>`:''}
+    ${nod&&!nog?`<p class="h">${nod} point(s) have no distance: place the gateway (buttons above the map).</p>`:''}
+    <p class="h">Click a point or a table row for details.</p>`;
+}
+
+/* ---- charts, bands, tables ---- */
+function sgCharts(D){
+  const pts=D.rows.filter(x=>x.d!=null), by={};
+  pts.forEach(x=>{ (by[x.hw]=by[x.hw]||[]).push(x); });
+  const hs=['V3','V4','?'].filter(h=>by[h]);
+  if(!hs.length){ clr('sgCv'); $('#sgBand').innerHTML='<p class="h">Load a batch and place the gateway on the map to get distances.</p>'; return; }
+  const mx=Math.max(...pts.map(x=>x.d)), step=sgStep(mx);
+  if(typeof Chart!=='undefined'){
+    chTheme(); const ds=[];
+    hs.forEach(h=>{
+      ds.push({label:`${SGN(h)} points`,data:by[h].map(x=>({x:x.d,y:+x.r.rssi})),backgroundColor:SGC[h]+'88',borderColor:SGC[h]+'88',pointRadius:3});
+      const b={}; by[h].forEach(x=>{ const i=Math.floor(x.d/step); (b[i]=b[i]||[]).push(+x.r.rssi); });
+      ds.push({label:`${SGN(h)} average (${step} m bins)`,showLine:true,tension:.2,borderColor:SGC[h],backgroundColor:SGC[h],pointRadius:5,
+        data:Object.keys(b).map(Number).sort((a,c)=>a-c).map(i=>({x:(i+.5)*step,y:avgA(b[i])}))});
+    });
+    const o=baseOpt('Distance from gateway (m)','RSSI (dBm)'); o.scales.x.type='linear';
+    mk('sgCv',{type:'scatter',options:o,data:{datasets:ds}});
+  }
+  const nb=Math.ceil((mx+1e-9)/step); let h=`<table class="nt"><tr><th>Band</th>${hs.map(k=>`<th>${SGN(k)} pts</th><th>${SGN(k)} RSSI</th><th>${SGN(k)} SNR</th>`).join('')}</tr>`;
+  for(let i=0;i<nb;i++){
+    h+=`<tr><td>${i*step}–${(i+1)*step} m</td>`+hs.map(k=>{ const a=by[k].filter(x=>Math.floor(x.d/step)===i);
+      return a.length?`<td>${a.length}</td><td><b>${f1(avgA(a.map(x=>+x.r.rssi)))}</b></td><td>${f1(avgA(a.map(x=>+x.r.snr)))}</td>`:'<td>0</td><td>–</td><td>–</td>'; }).join('')+'</tr>';
+  }
+  $('#sgBand').innerHTML=h+'</table>';
+}
+function sgSeqTable(D){
+  const M=sgSeqModel(D), P=SGP[SG.by];
+  $('#sgSeqInfo').innerHTML=M.hs.length?M.hs.map(h=>`<b>${SGN(h)}</b> heard ${M.stats[h].heard} of ${M.stats[h].total}`).join(' · '):'';
+  let h=`<tr><th>#</th><th>Batch</th><th>Session</th><th>Time</th><th>Lat</th><th>Lng</th>${M.hs.map(k=>`<th class="sep">${SGN(k)} RSSI</th><th>${SGN(k)} SNR</th><th>${SGN(k)} dist</th>`).join('')}${M.hs.includes('V3')&&M.hs.includes('V4')?'<th class="sep">Δ RSSI (V4−V3)</th>':''}</tr>`;
+  if(!M.entries.length) h+='<tr><td colspan="9" style="text-align:center;padding:20px;color:#666">Load a batch to see its sequence.</td></tr>';
+  M.entries.slice(0,1500).forEach(e=>{
+    const bn=SG.bm[e.bt]?SG.bm[e.bt].name:'Unbatched', k=e.rep?e.rep.k:'';
+    h+=`<tr ${k?`data-k="${esc(k)}"`:''} class="${k&&SG.sel===k?'sel':''}"><td><b>${e.o}</b></td><td>${esc(bn)}</td><td>${esc(e.s)}</td><td>${e.t?new Date(e.t).toLocaleString():'–'}</td><td>${e.g?e.g[0].toFixed(6):'–'}</td><td>${e.g?e.g[1].toFixed(6):'–'}</td>`;
+    M.hs.forEach(hw=>{ const x=e.by[hw];
+      h+=x?`<td class="sep"><b>${x.r.rssi}</b></td><td>${x.r.snr}</td><td>${fmtD(x.d)}</td>`:'<td class="lost sep" colspan="3">✖ lost</td>'; });
+    if(M.hs.includes('V3')&&M.hs.includes('V4')){ const a=e.by.V3, b=e.by.V4; h+=`<td class="sep">${a&&b?sg(+b.r.rssi-+a.r.rssi,0,' dB'):'–'}</td>`; }
+    h+='</tr>';
+  });
+  $('#sg-seq').innerHTML=h;
+}
+function sgTable(D){
+  const rows=[...D.rows].sort((a,b)=>b.t-a.t).slice(0,500);
+  let h='<tr><th>Time</th><th>Batch</th><th>Session</th><th>#</th><th>Gateway</th><th>Node</th><th>Path</th><th>Distance</th><th>Bearing</th><th>RSSI</th><th>SNR</th><th>Lat</th><th>Lng</th><th>GPS src</th><th>Latency</th></tr>';
+  if(!rows.length) h+='<tr><td colspan="15" style="text-align:center;padding:20px;color:#666">No test uploads match.</td></tr>';
+  rows.forEach(x=>{ const r=x.r;
+    h+=`<tr data-k="${esc(x.k)}" class="${SG.sel===x.k?'sel':''}"><td>${new Date(r.created_at).toLocaleString()}</td><td>${esc(SG.bm[x.bt]?SG.bm[x.bt].name:'Unbatched')}</td><td><b>${esc(x.s)}</b></td><td>${x.o}</td><td>${esc(r.gateway_id||'–')}</td><td>${esc(r.node_id||'–')}</td><td>${pathBadge(r)}</td>
+      <td>${fmtD(x.d)}</td><td>${x.b!=null?x.b.toFixed(0)+'° '+compass(x.b):'–'}</td><td>${r.rssi??'–'}</td><td>${r.snr??'–'}</td><td>${r.latitude}</td><td>${r.longitude}</td><td>${esc(r.gps_source||'')}</td><td>${fmtLat(latMs(r))}</td></tr>`; });
+  $('#sg-table').innerHTML=h;
+}
+function renderSig(){
+  if(!SG.map) sgInit();
+  SG.map.invalidateSize();
+  const D=sgData(); SG.D=D;
+  $('#sgSess').innerHTML=`<option value="all">All sessions (${D.sessions.length})</option>`+D.sessions.map(s=>`<option value="${esc(s.s)}">${esc(s.s)} · ${s.n} uploads</option>`).join('');
+  $('#sgSess').value=SG.sess;
+  $('#sgNode').innerHTML='<option value="all">All nodes</option>'+D.nodes.map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join('');
+  $('#sgNode').value=SG.node;
+  $('#sg-seq').style.display=SG.tbl==='seq'?'':'none'; $('#sg-table').style.display=SG.tbl==='raw'?'':'none';
+  document.querySelectorAll('[data-tb]').forEach(b=>b.classList.toggle('on',b.dataset.tb===SG.tbl));
+  sgBatUI(D); sgDrawMap(D); sgSide(D); sgCharts(D); sgSeqTable(D); sgTable(D);
+}
+function sgTheme(){
+  if(!SG.map) return;
+  const v=$('#sgBase').value;
+  if(v==='light'||v==='dark'||v==='osm'){ $('#sgBase').value=document.documentElement.dataset.theme==='dark'?'dark':'light'; sgBase($('#sgBase').value); }
+  if($('#sig').classList.contains('on')) renderSig();
+}
+function initSig(){
+  const on=(id,k,fit)=>{ $(id).onchange=e=>{ SG[k]=e.target.value; if(fit) SG.fit=true; renderSig(); }; };
+  on('#sgSess','sess',1); on('#sgBy','by',0); on('#sgGw','gw',1); on('#sgPath','path',1); on('#sgNode','node',1); on('#sgCol','col',0);
+  $('#sgBase').onchange=e=>sgBase(e.target.value);
+  $('#sgFit').onclick=()=>{ SG.fit=true; renderSig(); };
+  $('#sgLines').onclick=()=>{ SG.lines=!SG.lines; $('#sgLines').textContent='〰 Connect points: '+(SG.lines?'On':'Off'); $('#sgLines').classList.toggle('on',SG.lines); renderSig(); };
+  $('#sgRings').onclick=()=>{ SG.rings=!SG.rings; $('#sgRings').textContent='⭕ Distance rings: '+(SG.rings?'On':'Off'); $('#sgRings').classList.toggle('on',SG.rings); renderSig(); };
+  document.querySelectorAll('[data-place]').forEach(b=>b.onclick=()=>{
+    const same=SG.place===b.dataset.place; SG.place=same?null:b.dataset.place;
+    document.querySelectorAll('[data-place]').forEach(x=>x.classList.toggle('on',x===b&&!same));
+    $('#sgmap').style.cursor=SG.place?'crosshair':''; $('#sgMsg').textContent=SG.place?'Click the map where '+SG.place+' is placed':'';
+  });
+  document.querySelectorAll('[data-tb]').forEach(b=>b.onclick=()=>{ SG.tbl=b.dataset.tb; renderSig(); });
+  const pick=e=>{
+    const tr=e.target.closest('tr[data-k]'); if(!tr) return;
+    SG.sel=tr.dataset.k; const x=sgData().forDel.find(v=>v.k===SG.sel);
+    if(x&&x.g) SG.map.setView(x.g,Math.max(SG.map.getZoom(),17)); renderSig();
+  };
+  $('#sg-table').addEventListener('click',pick); $('#sg-seq').addEventListener('click',pick);
+  const bat=$('#sgBat');
+  bat.addEventListener('change',async e=>{
+    const id=e.target.dataset.ld; if(!id) return;
+    if(e.target.checked){ SG.loaded.add(id); sgSave(); SG.fit=true; sgBM(); await sgFetchBatch(id); } else { SG.loaded.delete(id); sgSave(); }
+    renderSig();
+  });
+  bat.addEventListener('click',async e=>{
+    const t=e.target.closest('button'); if(!t) return;
+    if(t.id==='sgStart') return sgStart();
+    if(t.id==='sgEnd') return sgEnd();
+    if(t.id==='sgUnload'){ SG.loaded.clear(); sgSave(); SG.sel=null; return renderSig(); }
+    if(t.id==='sgLoadAll'){ BAT.forEach(b=>SG.loaded.add(b.id)); sgSave(); SG.fit=true; sgBM(); for(const b of BAT) await sgFetchBatch(b.id); return renderSig(); }
+    if(t.dataset.rn){ const b=BAT.find(x=>x.id===t.dataset.rn); if(!b) return; const n=prompt('Rename batch',b.name); if(!n||!n.trim()) return;
+      b.name=n.trim(); sbJ('PATCH',`test_batches?id=eq.${b.id}`,{name:b.name},'return=minimal').catch(()=>{}); return renderSig(); }
+    if(t.dataset.del){ const b=BAT.find(x=>x.id===t.dataset.del); if(!b) return;
+      if(!confirm(`Delete the batch entry "${b.name}"?\nThe uploaded data is NOT deleted; it will show under "Unbatched uploads".`)) return;
+      try{ const r=await sbJ('DELETE',`test_batches?id=eq.${b.id}`,undefined,'return=minimal'); if(!r.ok) throw new Error('HTTP '+r.status);
+        BAT=BAT.filter(x=>x.id!==b.id); SG.loaded.delete(b.id); sgSave(); renderSig(); }catch(x){ alert('Could not delete: '+x.message); } }
+  });
+  $('#sgCsv').onclick=()=>{
+    const q=v=>'"'+String(v??'').replace(/"/g,'""')+'"', D=sgData();
+    const H=['batch','created_at','session','order','gateway_id','node_id','relay_id','hop_count','path','rssi','snr','freq_err','latitude','longitude','gps_source','distance_m','bearing_deg'];
+    dl('signal_test.csv',H.join(',')+'\n'+[...D.rows].sort((a,b)=>a.t-b.t).map(x=>{ const r=x.r;
+      return [SG.bm[x.bt]?SG.bm[x.bt].name:'Unbatched',r.created_at,x.s,x.o,r.gateway_id,r.node_id,r.relay_id,r.hop_count,pathOf(r).l,r.rssi,r.snr,r.freq_err,r.latitude,r.longitude,r.gps_source,x.d==null?'':x.d.toFixed(1),x.b==null?'':x.b.toFixed(0)].map(q).join(','); }).join('\n'));
+  };
+}
+initSig();
+setInterval(syncTests,6000);
+
 /* ---------- Theme (light / dark) ---------- */
 function setTheme(t,init){
   document.documentElement.dataset.theme=t;
   try{localStorage.setItem('mpobtheme',t)}catch(e){}
   $('#themeBtn').innerHTML=t==='dark'?'☀ Light mode':'🌙 Dark mode';
   const c=$('#tl').value;
-  if(init||c==='light'||c==='dark'||c==='osm'){ $('#tl').value=t==='dark'?'dark':'light'; setBase($('#tl').value); }
+  if(init){ $('#tl').value='google_sat'; setBase('google_sat'); }
+  else if(c==='light'||c==='dark'||c==='osm'){ $('#tl').value=t==='dark'?'dark':'light'; setBase($('#tl').value); }
   if($('#cmp').classList.contains('on')) renderCmp();
+  if(typeof sgTheme==='function') sgTheme();
 }
 let _th; try{_th=localStorage.getItem('mpobtheme')}catch(e){}
 if(!_th) _th=(window.matchMedia&&matchMedia('(prefers-color-scheme:dark)').matches)?'dark':'light';
