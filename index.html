@@ -4,8 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<title>DMAPS MPOB LoRa Dashboard</title>
+<title>MPOB LoRa Dashboard</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
+<link rel="icon" type="image/png" href="icon.png">
 <style>
 :root{--bg:#f3f5f7;--panel:#fff;--soft:#f1f5f4;--bd:#dde3e6;--tx:#0f1b24;--mut:#667780;--ac:#0b7a5c;--acfg:#fff;--rail:#0e2a24;--railtx:#cfe3dc;
 --okbg:#ecfdf5;--xbg:#faf5ff;--xbd:#e9d5ff;--x:#7e22ce;--ok:#15803d;--inp:#fff;--sh:0 1px 2px rgba(15,27,36,.06),0 4px 14px rgba(15,27,36,.05)}
@@ -16,7 +17,8 @@ body{margin:0;font:14px/1.45 Inter,"Segoe UI",system-ui,sans-serif;background:va
 .app{display:grid;grid-template-columns:240px 1fr;min-height:100vh}
 .rail{position:sticky;top:0;height:100vh;background:var(--rail);color:var(--railtx);padding:18px 14px;display:flex;flex-direction:column;gap:6px;overflow:auto}
 .brand{display:flex;gap:10px;align-items:center;margin-bottom:14px}
-.logo{width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,#10b981,#f59e0b);display:grid;place-items:center;font-size:20px}
+.icon{width:42px;height:42px;border-radius:10px;display:grid;place-items:center;overflow:hidden}
+.icon img{width:100%;height:100%;object-fit:contain}
 .brand b{display:block;color:#fff;font-size:16px;letter-spacing:.5px}.brand span{font-size:12px;color:var(--railtx)}
 .nv{background:none;border:0;color:var(--railtx);text-align:left;padding:9px 12px;border-radius:8px;cursor:pointer;font:inherit}
 .nv:hover{background:rgba(255,255,255,.07)}.nv.on{background:rgba(52,211,153,.16);color:#fff;font-weight:600}
@@ -27,7 +29,9 @@ body{margin:0;font:14px/1.45 Inter,"Segoe UI",system-ui,sans-serif;background:va
 .rail .b:hover{background:rgba(255,255,255,.16)}
 .live{margin-top:auto;font-size:11px;opacity:.75;display:flex;gap:6px;align-items:center}
 .live i{width:8px;height:8px;border-radius:50%;background:#34d399;box-shadow:0 0 0 3px rgba(52,211,153,.25)}
-main{padding:20px 26px;min-width:0}
+main{padding:20px 26px;min-width:0;display:flex;flex-direction:column;min-height:100vh}
+main>*{flex-shrink:0}
+main>.v{margin-bottom:28px}
 .top{display:flex;justify-content:space-between;align-items:end;margin-bottom:16px;gap:12px;flex-wrap:wrap}
 .top h2{margin:0;font-size:24px;letter-spacing:-.3px}.top p{margin:2px 0 0;color:var(--mut);font-size:13px}
 .flow{font-size:12px;color:var(--mut);background:var(--panel);border:1px solid var(--bd);padding:6px 12px;border-radius:99px}
@@ -105,6 +109,7 @@ aside h3{margin-top:0}
 .gp input{font:inherit;padding:6px 8px;border:1px solid var(--bd);border-radius:7px;background:var(--inp);color:var(--tx);width:100%}
 @media(max-width:700px){.gp{grid-template-columns:64px 1fr}.gp .h{grid-column:1/-1}}
 /* ---- Signal Test tab ---- */
+#sgTabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;align-items:center}
 #sgmap{height:70vh;min-height:440px;border-radius:14px;background:var(--soft);border:1px solid var(--bd);position:relative}
 #sig aside{max-height:70vh}
 #sig h3{margin:0 0 8px;font-size:14px}
@@ -126,17 +131,40 @@ aside h3{margin-top:0}
 .rec{display:inline-flex;align-items:center;gap:6px;font-weight:600}
 .rec i{width:10px;height:10px;border-radius:50%;background:#dc2626;display:inline-block}
 .bh{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
+/* ---- Heatmap tab ---- */
+#hmTabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;align-items:center}
+#hmmap{height:70vh;min-height:440px;border-radius:14px;background:var(--soft);border:1px solid var(--bd);position:relative}
+#hm aside{max-height:70vh}
+#hm h3{margin:0 0 8px;font-size:14px}
+#hmStage{position:relative}
+.hm-float{display:none;position:absolute;top:12px;left:56px;z-index:1200;gap:10px;align-items:center;flex-wrap:wrap;background:var(--panel);border:1px solid var(--bd);border-radius:10px;padding:6px 10px;box-shadow:var(--sh);max-width:calc(100% - 420px)}
+#hmStage.hm-full{position:fixed;inset:0;z-index:3000;background:var(--bg);gap:0;grid-template-columns:1fr 320px}
+#hmStage.hm-full #hmmap{height:100vh;min-height:0;border-radius:0;border:0}
+#hmStage.hm-full aside{max-height:100vh;height:100vh;border-radius:0;margin:0}
+#hmStage.hm-full .hm-float{display:flex}
+@media(max-width:900px){#hmStage.hm-full{grid-template-columns:1fr}#hmStage.hm-full aside{display:none}.hm-float{max-width:calc(100% - 70px)}}
+.hmramp{display:inline-block;width:170px;height:12px;border-radius:6px;vertical-align:middle;border:1px solid var(--bd)}
+.hmchip{display:inline-flex;align-items:center;gap:6px}
+#hmHover{display:none;position:absolute;left:12px;bottom:12px;z-index:1100;background:var(--panel);color:var(--tx);border:1px solid var(--bd);border-radius:8px;padding:6px 10px;box-shadow:var(--sh);font-size:12.5px;pointer-events:none}
+#hmCfg{margin-bottom:8px;padding:10px 14px}
+#hmCfg summary{cursor:pointer;font-weight:600}
+.hmcg{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-top:10px}
+.hmcg label{font-size:12px;color:var(--mut)}
+.hmcg input{font:inherit;padding:6px 8px;border:1px solid var(--bd);border-radius:7px;background:var(--inp);color:var(--tx);width:100%;margin-top:2px}
+#hm input[type=range]{width:90px;padding:0}
+.foot{margin-top:auto;padding:14px 0 6px;border-top:1px solid var(--bd);display:flex;justify-content:space-between;gap:8px 20px;flex-wrap:wrap;font-size:12px;color:var(--mut)}
 </style>
 </head>
 <body>
 <div class="app">
 <nav class="rail">
-  <div class="brand"><div class="logo">📡</div><div><b>DMAPS MPOB</b><span>LoRa Dashboard</span></div></div>
+  <div class="brand"><div class="icon"><img src="icon.png" alt="MPOB logo"></div><div><b>DMAPS MPOB</b><span>LoRa Dashboard</span></div></div>
   <button class="nv on" data-v="dash" data-t="Overview" data-s="Block progress and field verification">▦ &nbsp;Overview</button>
   <button class="nv" data-v="ed" data-t="Map Editor" data-s="Plant grid, tree IDs and live tree status">◎ &nbsp;Map Editor</button>
   <button class="nv" data-v="raw" data-t="Raw Data" data-s="Every LoRa upload received from the gateway">☰ &nbsp;Raw Data</button>
   <button class="nv" data-v="cmp" data-t="Hardware Compare" data-s="Heltec V3 vs V4 signal performance">📊 &nbsp;Hardware Compare</button>
   <button class="nv" data-v="sig" data-t="Signal Test" data-s="GPS signal tests: no QR code needed, each upload's own position is the point">📶 &nbsp;Signal Test</button>
+  <button class="nv" data-v="hm" data-t="Heatmap" data-s="Coverage maps per block or site, saved with their settings">🗺 &nbsp;Heatmap</button>
   <div class="grp">
     <small>GPS validation</small>
     <label title="An upload only counts for a tree if its GPS is within this distance of the mapped tree"><input type="checkbox" id="req" checked> Require GPS ≤ <input type="number" id="tol" min="1" max="200" step="1" value="10"> m</label>
@@ -155,7 +183,7 @@ aside h3{margin-top:0}
 <main>
 <div class="top">
   <div><h2 id="pt">Overview</h2><p id="ps">Block progress and field verification</p></div>
-  <span class="flow">Digital Management Plantation System</span>
+  <span class="flow">MPOB LoRa Dashboard</span>
 </div>
 
 <div id="dash" class="v on"></div>
@@ -203,6 +231,7 @@ aside h3{margin-top:0}
 </div>
 
 <div id="sig" class="v">
+  <div id="sgTabs"></div>
   <div class="tl">
     <select id="sgSess" style="width:210px"></select>
     <select id="sgBy" style="width:150px"><option value="gw">Compare gateways</option><option value="node">Compare nodes</option><option value="relay">Compare relays</option></select>
@@ -218,6 +247,7 @@ aside h3{margin-top:0}
     <button class="b" data-place="GWV3">GWV3</button><button class="b" data-place="GWV4">GWV4</button><button class="b" data-place="RV3">RV3</button><button class="b" data-place="RV4">RV4</button>
     <button class="b on" id="sgRings">⭕ Distance rings: On</button>
     <span id="sgMsg" class="h"></span>
+    <span class="sp"><span id="sgSaved" class="h"></span><button class="b" id="sgRename" style="display:none">✎ Rename block</button><button class="b" id="sgDelBlock" style="display:none">🗑 Delete block</button><button class="b p" id="sgSaveBtn" style="display:none">💾 Save</button></span>
   </div>
   <div class="card" id="sgBat" style="margin-bottom:8px"></div>
   <div class="lg" id="sgLg"></div>
@@ -231,6 +261,54 @@ aside h3{margin-top:0}
       <button class="b on" data-tb="seq">Sequence</button><button class="b" data-tb="raw">All uploads</button><span id="sgSeqInfo" class="h"></span>
     </div>
     <div style="overflow:auto;max-height:55vh"><table id="sg-seq"></table><table id="sg-table" style="display:none"></table></div>
+  </div>
+</div>
+
+<div id="hm" class="v">
+  <div id="hmTabs"></div>
+  <div class="tl">
+    <select id="hmMetric" style="width:190px"><option value="rssi">RSSI (median)</option><option value="snr">SNR (median)</option><option value="delivery">Delivery % (estimated)</option><option value="elev">Terrain height (m asl)</option><option value="count">Sample count</option></select>
+    <select id="hmGw" style="width:170px"></select>
+    <label>Cell <select id="hmCell" style="width:80px"><option value="10">10 m</option><option value="20">20 m</option><option value="25">25 m</option><option value="50">50 m</option><option value="100">100 m</option><option value="200">200 m</option></select></label>
+    <label>Min samples <select id="hmMin" style="width:60px"><option>1</option><option>2</option><option>3</option><option>5</option></select></label>
+    <label title="Samples whose GPS error is larger than this are ignored (only when the app sends the error)">Max GPS error (m) <input id="hmAcc" type="number" min="1" max="200" step="1" style="width:64px"></label>
+    <select id="hmPath" style="width:125px"><option value="all">All paths</option><option value="D">Direct</option><option value="R">Via repeater</option></select>
+    <select id="hmNode" style="width:110px"></select>
+    <select id="hmSince" style="width:115px"><option value="0">All data</option><option value="24">Last 24 h</option><option value="168">Last 7 d</option><option value="720">Last 30 d</option></select>
+    <label>Scale <input id="hmSmin" type="number" step="1" style="width:64px"> to <input id="hmSmax" type="number" step="1" style="width:64px"></label>
+  </div>
+  <div class="tl">
+    <span class="h">Place:</span>
+    <button class="b" data-hplace="GWV3">GWV3</button><button class="b" data-hplace="GWV4">GWV4</button><button class="b" data-hplace="RV3">RV3</button><button class="b" data-hplace="RV4">RV4</button>
+    <button class="b on" id="hmCellsBtn">▦ Cells</button><select id="hmStyle" style="width:135px"><option value="smooth">Smooth blend</option><option value="blocks">Blocks</option></select><button class="b" id="hmSampBtn">● Samples</button><button class="b on" id="hmRingBtn">⭕ Rings</button>
+    <select id="hmBase" style="width:150px"><option value="osm">OpenStreetMap</option><option value="light">Light (CARTO)</option><option value="dark">Dark (CARTO)</option><option value="sat">Esri Satellite</option><option value="google_sat">Google Satellite</option><option value="google_hybrid">Google Hybrid</option></select>
+    <label>Opacity <input id="hmOp" type="range" min="20" max="95"></label>
+    <span class="sp">
+      <span id="hmSaved" class="h"></span>
+      <button class="b" id="hmFit">🔎 Fit</button><button class="b" id="hmRefresh">⟳ Reload data</button><button class="b" id="hmCsv">Export cells</button>
+      <button class="b" id="hmRename">✎ Rename</button><button class="b" id="hmDelete">🗑 Delete block</button><button class="b p" id="hmSave">💾 Save</button>
+      <button class="b p" id="hmFull">⛶ Enlarge map</button>
+    </span>
+  </div>
+  <details class="card" id="hmCfg"><summary>Test settings and notes (saved with this block)</summary>
+    <div class="hmcg">
+      <label>Frequency (MHz)<input data-cfg="freq" placeholder="433"></label>
+      <label>Spreading factor<input data-cfg="sf" placeholder="12"></label>
+      <label>Bandwidth (kHz)<input data-cfg="bw" placeholder="125"></label>
+      <label>TX power (dBm)<input data-cfg="pw" placeholder="22"></label>
+      <label>Gateway antenna height (m)<input data-cfg="gh" placeholder="e.g. 6"></label>
+      <label>Node antenna height (m)<input data-cfg="nh" placeholder="e.g. 1.5"></label>
+      <label style="grid-column:1/-1">Notes (weather, antenna type, who tested)<input data-cfg="note"></label>
+    </div>
+  </details>
+  <div class="lg" id="hmLg"></div>
+  <div id="hmStage" class="lay">
+    <div id="hmmap"></div>
+    <aside class="card" id="hmSide"></aside>
+    <div id="hmHover"></div>
+    <div class="hm-float"><b id="hmFName"></b>
+      <select id="hmFMetric" style="width:170px"><option value="rssi">RSSI (median)</option><option value="snr">SNR (median)</option><option value="delivery">Delivery %</option><option value="elev">Terrain height</option><option value="count">Sample count</option></select>
+      <span id="hmLg2"></span><button class="b" id="hmFExit">✕ Exit full size</button></div>
   </div>
 </div>
 
@@ -297,6 +375,11 @@ aside h3{margin-top:0}
    <table id="data-table"></table>
  </div>
 </div>
+<footer class="foot">
+  <span>© <span id="ftYear">2026</span> MPOB LoRa Dashboard · Developed by HSS</span>
+  <span></span>
+  <span>v1.0 · Updated 29 Oct 2026</span>
+</footer>
 </main>
 </div>
 
@@ -354,6 +437,7 @@ document.querySelectorAll('.nv').forEach(b=>b.onclick=()=>{
   else if(b.dataset.v=='raw') renderRaw();
   else if(b.dataset.v=='cmp') renderCmp();
   else if(b.dataset.v=='sig') renderSig();
+  else if(b.dataset.v=='hm') renderHm();
   else dash();
 });
 
@@ -479,7 +563,7 @@ function gwChip(){
 }
 function netHtml(){
   gwChip();
-  const RP={}, ND={}, NA=TST.length?ALL.concat(TST).sort((a,b)=>new Date(b.created_at)-new Date(a.created_at)):ALL;
+  const RP={}, ND={}, NA=(TST.length||HMS.length)?ALL.concat(TST,HMS).sort((a,b)=>new Date(b.created_at)-new Date(a.created_at)):ALL;
   NA.forEach(x=>{
     const p=pathOf(x);
     if(p.k==='R'){
@@ -981,7 +1065,7 @@ $('#treeDown').onclick=()=>pullTrees();
 async function syncSupabase(){
   msg('Syncing with Supabase…');
   try{
-    const r=await fetch(`${SB_URL}/rest/v1/harvest_data?select=*&or=(user_type.neq.T,user_type.is.null)&order=created_at.desc&limit=5000`,{headers:sbH});
+    const r=await fetch(`${SB_URL}/rest/v1/harvest_data?select=*&or=(and(user_type.neq.T,user_type.neq.M),user_type.is.null)&order=created_at.desc&limit=5000`,{headers:sbH});
     if(!r.ok) throw new Error('HTTP '+r.status);
     RF={}; BY={};
     ALL=await r.json();
@@ -1003,6 +1087,7 @@ async function syncSupabase(){
       if(bt.ok){ BAT=await bt.json(); BATerr=''; } else { BATerr='HTTP '+bt.status; }
     }catch(e){ BATerr='offline'; }
     if(typeof sgEnsure==='function') sgEnsure();
+    if(typeof hmSync==='function') hmSync();
     AC.clear();
     msg(`Synced ${ALL.length} records / ${Object.keys(RF).length} QR IDs`);
     refreshAll();
@@ -1015,6 +1100,7 @@ function refreshAll(){
   if($('#raw').classList.contains('on')) renderRaw();
   if($('#cmp').classList.contains('on')) renderCmp();
   if($('#sig').classList.contains('on')) renderSig();
+  if($('#hm').classList.contains('on')) renderHm();
   if($('#ed').classList.contains('on')){
     if(isTableView){ if(inTableEdit()) pendingRefresh=true; else renderTable(); }
     else { draw(); side(); }
@@ -1397,13 +1483,13 @@ function renderCmp(){
 const ELC={};
 async function elevOnline(lat,lng){
   const z=14, t=tileXY(lat,lng,z), key=`${z}/${t.x}/${t.y}`;
-  let d=ELC[key];
-  if(!d){
+  if(!ELC[key]) ELC[key]=(async()=>{
     const im=await loadImg(`https://s3.amazonaws.com/elevation-tiles-prod/terrarium/${key}.png`);
     const cv=document.createElement('canvas'); cv.width=cv.height=256;
     const cx=cv.getContext('2d',{willReadFrequently:true}); cx.drawImage(im,0,0);
-    d=ELC[key]=cx.getImageData(0,0,256,256).data;
-  }
+    return cx.getImageData(0,0,256,256).data;
+  })().catch(e=>{ delete ELC[key]; throw e; });
+  const d=await ELC[key];
   const s=256*2**z, X=(lng+180)/360*s, r=lat*Math.PI/180, Y=(1-Math.log(Math.tan(r)+1/Math.cos(r))/Math.PI)/2*s,
         cx0=Math.floor(X-t.x*256), cy0=Math.floor(Y-t.y*256), v=[];
   for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){
@@ -1469,7 +1555,7 @@ function initCmp(){
 initCmp();
 
 /* ============ Signal Test tab (user type T - no QR code needed) ============ */
-const SG={map:null,layer:null,tiles:null,sel:null,place:null,rings:true,lines:true,col:'rssi',by:'gw',sess:'all',gw:'all',path:'all',node:'all',tbl:'seq',fit:true,D:null,bm:{},fetched:new Set(),ready:false,loaded:new Set()};
+const SG={map:null,layer:null,tiles:null,sel:null,place:null,rings:true,lines:true,col:'rssi',by:'gw',sess:'all',gw:'all',path:'all',node:'all',tbl:'seq',fit:true,D:null,bm:{},fetched:new Set(),ready:false,loaded:new Set(),cur:'un',dirty:false,timer:null,quiet:false,applyView:false,autoload:false};
 let _sl=null; try{ _sl=JSON.parse(localStorage.getItem('sgloaded')); }catch(e){}
 if(Array.isArray(_sl)) _sl.forEach(i=>SG.loaded.add(i));
 const SG_GRACE=20000, SGP={gw:'GW',node:'N',relay:'R'};
@@ -1486,7 +1572,7 @@ const bearing=(la1,lo1,la2,lo2)=>{ const d=Math.PI/180, y=Math.sin((lo2-lo1)*d)*
 const compass=b=>['N','NE','E','SE','S','SW','W','NW'][Math.round(b/45)%8];
 const sgRunning=()=>BAT.find(b=>!b.ended_at);
 const sgBM=()=>{ SG.bm={}; BAT.forEach(b=>SG.bm[b.id]=b); };
-const sgSave=()=>{ try{ localStorage.setItem('sgloaded',JSON.stringify([...SG.loaded])); }catch(e){} };
+const sgSave=()=>{ if(sgBlock()) sgSaveLater(); else { try{ localStorage.setItem('sgloaded',JSON.stringify([...SG.loaded])); }catch(e){} } };
 const sbJ=(m,path,body,prefer)=>fetch(`${SB_URL}/rest/v1/${path}`,{method:m,headers:{...sbH,'Content-Type':'application/json',Prefer:prefer||'return=representation'},body:body===undefined?undefined:JSON.stringify(body)});
 
 /* keep test rows we already have, add new ones (older batches are fetched on demand) */
@@ -1497,7 +1583,19 @@ function mergeT(rows){
 /* which batch does an upload belong to? the latest batch started before it (small grace after End for late arrivals) */
 const sgAssign=()=>BAT.map(b=>({id:b.id,s:new Date(b.started_at).getTime(),e:b.ended_at?new Date(b.ended_at).getTime()+SG_GRACE:Infinity})).sort((a,c)=>c.s-a.s);
 const sgBatchOf=(t,B)=>{ for(const o of B) if(t>=o.s) return t<=o.e?o.id:'none'; return 'none'; };
-const sgPos=(bt,id)=>{ const b=bt!=='none'?SG.bm[bt]:null, k=gpKey(id); if(b&&b.pos&&Object.prototype.hasOwnProperty.call(b.pos,k)) return b.pos[k]||null; return GPOS[k]||null; };
+let SB=[], SBerr='';
+const SG_DEF={col:'rssi',by:'gw',gw:'all',path:'all',node:'all',sess:'all',tbl:'seq',rings:true,lines:true};
+try{ SG.cur=localStorage.getItem('sgcur')||'un'; }catch(e){}
+function sbNorm(b){ b.settings=Object.assign({},b.settings||{}); b.pos=b.pos||{}; return b; }
+const sgBlock=()=>SB.find(b=>b.id===SG.cur)||null;
+const inTab=(b,cur)=>cur==='un'?(!b.block_id||!SB.some(x=>x.id===b.block_id)):b.block_id===cur;
+/* position of a gateway/repeater: the test's own saved copy, else the block's saved place, else (no block) the shared one */
+const sgPos=(bt,id)=>{
+  const b=bt!=='none'?SG.bm[bt]:null, k=gpKey(id);
+  if(b&&b.pos&&Object.prototype.hasOwnProperty.call(b.pos,k)) return b.pos[k]||null;
+  const blk=(b&&b.block_id&&SB.find(x=>x.id===b.block_id))||sgBlock();
+  return blk?(blk.pos[k]||null):(GPOS[k]||null);
+};
 
 function sgDecor(r,B){
   const l=sgLabel(r), g=recGPS(r), t=new Date(r.created_at).getTime(), bt=sgBatchOf(t,B), p=sgPos(bt,r.gateway_id), hw=hwOf(r[CMP_FIELD[SG.by]])||'?';
@@ -1570,14 +1668,16 @@ function sgBase(k){
 }
 const sgOne=()=>{ const ids=[...SG.loaded].filter(i=>i!=='none'&&SG.bm[i]); return ids.length===1?SG.bm[ids[0]]:null; };
 function sgMarkPos(){
-  const one=sgOne(), o={};
-  ['GWV3','GWV4','RV3','RV4'].forEach(id=>{ const p=one?sgPos(one.id,id):GPOS[id]; if(p) o[id]=p; });
+  const one=sgOne(), blk=sgBlock(), o={};
+  ['GWV3','GWV4','RV3','RV4'].forEach(id=>{ const p=one?sgPos(one.id,id):(blk?blk.pos[id]:GPOS[id]); if(p) o[id]=p; });
   return o;
 }
+/* a marker you place or move is saved in the block; a test also keeps its own copy when it is the only one loaded */
 function placePos(id,lat,lng){
-  const one=sgOne(), run=sgRunning();
+  const one=sgOne(), run=sgRunning(), blk=sgBlock();
   if(one){ one.pos=Object.assign({},one.pos||{},{[id]:{lat,lng}}); sbJ('PATCH',`test_batches?id=eq.${one.id}`,{pos:one.pos},'return=minimal').catch(()=>{}); }
-  if(!one||(run&&one.id===run.id)){
+  if(blk){ blk.pos[id]={lat,lng}; sgSaveLater(); }
+  else if(!one||(run&&one.id===run.id)){
     GPOS[id]={lat,lng};
     try{ localStorage.setItem('palmgwpos',JSON.stringify(GPOS)); }catch(e){}
     const i=document.querySelector(`[data-gp=${id}]`); if(i) i.value=lat.toFixed(6)+', '+lng.toFixed(6);
@@ -1586,9 +1686,10 @@ function placePos(id,lat,lng){
   SG.fit=false; renderSig();
 }
 function removePos(id){
-  const one=sgOne(), run=sgRunning();
+  const one=sgOne(), run=sgRunning(), blk=sgBlock();
   if(one){ one.pos=Object.assign({},one.pos||{},{[id]:null}); sbJ('PATCH',`test_batches?id=eq.${one.id}`,{pos:one.pos},'return=minimal').catch(()=>{}); }
-  if(!one||(run&&one.id===run.id)){
+  if(blk){ delete blk.pos[id]; sgSaveLater(); }
+  else if(!one||(run&&one.id===run.id)){
     delete GPOS[id]; GEL[id]=null;
     try{ localStorage.setItem('palmgwpos',JSON.stringify(GPOS)); }catch(e){}
     const i=document.querySelector(`[data-gp=${id}]`); if(i) i.value='';
@@ -1597,16 +1698,81 @@ function removePos(id){
   }
   SG.fit=false; renderSig();
 }
+
+/* ---- blocks: saved view, filters, loaded tests and gateway/repeater places ---- */
+function sgCapture(){
+  const b=sgBlock(); if(!b) return;
+  const s=b.settings; Object.keys(SG_DEF).forEach(k=>{ s[k]=SG[k]; });
+  s.base=$('#sgBase').value; s.loaded=[...SG.loaded];
+}
+function sgSaveLater(){
+  const b=sgBlock(); if(!b) return;
+  sgCapture(); SG.dirty=true; clearTimeout(SG.timer);
+  const st=$('#sgSaved'); if(st) st.textContent='Unsaved changes…';
+  SG.timer=setTimeout(sgBlkSave,1200);
+}
+async function sgBlkSave(){
+  clearTimeout(SG.timer); const b=sgBlock(); if(!b||!SG.dirty) return; SG.dirty=false;
+  try{
+    const r=await sbJ('PATCH',`signal_blocks?id=eq.${b.id}`,{name:b.name,settings:b.settings,pos:b.pos,view:b.view||null,updated_at:new Date().toISOString()},'return=minimal');
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    $('#sgSaved').textContent='Saved ✓ '+new Date().toLocaleTimeString();
+  }catch(e){ SG.dirty=true; $('#sgSaved').textContent='Save failed: '+e.message; }
+}
+function sgApplyUI(){
+  $('#sgBy').value=SG.by; $('#sgGw').value=SG.gw; $('#sgPath').value=SG.path; $('#sgCol').value=SG.col;
+  $('#sgLines').textContent='〰 Connect points: '+(SG.lines?'On':'Off'); $('#sgLines').classList.toggle('on',SG.lines);
+  $('#sgRings').textContent='⭕ Distance rings: '+(SG.rings?'On':'Off'); $('#sgRings').classList.toggle('on',SG.rings);
+  const b=sgBlock(); ['#sgRename','#sgDelBlock','#sgSaveBtn'].forEach(id=>{ $(id).style.display=b?'':'none'; }); $('#sgSaved').textContent='';
+}
+function sgApplyState(){
+  const b=sgBlock(), s=b?b.settings:{};
+  Object.keys(SG_DEF).forEach(k=>{ SG[k]=s[k]!==undefined?s[k]:SG_DEF[k]; });
+  SG.loaded=new Set(b?(Array.isArray(s.loaded)?s.loaded:[]):(Array.isArray(_sl)?_sl:[]));
+  SG.autoload=b?s.loaded===undefined:_sl===null;
+  if(b&&s.base){ $('#sgBase').value=s.base; if(SG.map) sgBase(s.base); }
+  sgApplyUI();
+}
+async function sgBlocksFetch(){
+  try{
+    const r=await fetch(`${SB_URL}/rest/v1/signal_blocks?select=*&order=created_at.asc`,{headers:sbH});
+    if(r.ok){ const rows=(await r.json()).map(sbNorm); if(!SG.dirty) SB=rows; else rows.forEach(n=>{ if(!SB.some(b=>b.id===n.id)) SB.push(n); }); SBerr=''; }
+    else SBerr='HTTP '+r.status;
+  }catch(e){ SBerr='offline'; }
+}
+async function sgSwitch(id){
+  await sgBlkSave(); SG.cur=id; try{ localStorage.setItem('sgcur',id); }catch(e){}
+  sgApplyState(); SG.sel=null; const b=sgBlock(); SG.fit=!(b&&b.view); SG.applyView=!!(b&&b.view);
+  await sgPrepare();
+}
+async function sgNewBlock(){
+  const nm=prompt('Block / site name',''); if(!nm||!nm.trim()) return;
+  const c=SG.map?SG.map.getCenter():null, view=c?{c:[c.lat,c.lng],z:SG.map.getZoom()}:null;
+  try{
+    const r=await sbJ('POST','signal_blocks',{name:nm.trim(),view,pos:{},settings:{}}); if(!r.ok) throw new Error('HTTP '+r.status);
+    const row=sbNorm((await r.json())[0]); SB.push(row); await sgSwitch(row.id);
+  }catch(e){ alert('Could not create the block: '+e.message+'. Is the signal_blocks table created with policies?'); }
+}
+function sgTabsUI(){
+  const el=$('#sgTabs'); if(!el) return;
+  const un=BAT.filter(b=>inTab(b,'un')).length, showUn=un>0||SG.cur==='un'||!SB.length;
+  el.innerHTML=SB.map(b=>`<button class="tb ${b.id===SG.cur?'on':''}" data-sb="${esc(b.id)}">${esc(b.name)}</button>`).join('')
+    +(showUn?`<button class="tb ${SG.cur==='un'?'on':''}" data-sb="un">Unassigned${un?' ('+un+')':''}</button>`:'')
+    +'<button class="tb" data-sb="new">＋ New block</button>'
+    +(SBerr?`<span class="h">Blocks need the signal_blocks table (${esc(SBerr)}).</span>`:'');
+}
+
 function sgInit(){
-  const c=GPOS.GWV4||GPOS.GWV3;
-  SG.map=L.map('sgmap',{preferCanvas:true,maxZoom:21}).setView(c?[c.lat,c.lng]:[3.52,102.42],c?16:15);
+  const b=sgBlock(), c=GPOS.GWV4||GPOS.GWV3, v=b&&b.view;
+  SG.map=L.map('sgmap',{preferCanvas:true,maxZoom:21}).setView(v?v.c:(c?[c.lat,c.lng]:[3.52,102.42]),v?v.z:(c?16:15));
   SG.layer=L.layerGroup().addTo(SG.map);
-  $('#sgBase').value='google_sat'; sgBase('google_sat');
+  const bs=(b&&b.settings.base)||'google_sat'; $('#sgBase').value=bs; sgBase(bs);
   SG.map.on('click',e=>{
-    if(SG.place){ const id=SG.place; SG.place=null; $('#sgmap').style.cursor=''; $('#sgMsg').textContent=''; document.querySelectorAll('[data-place]').forEach(b=>b.classList.remove('on')); placePos(id,e.latlng.lat,e.latlng.lng); }
+    if(SG.place){ const id=SG.place; SG.place=null; $('#sgmap').style.cursor=''; $('#sgMsg').textContent=''; document.querySelectorAll('[data-place]').forEach(x=>x.classList.remove('on')); placePos(id,e.latlng.lat,e.latlng.lng); }
     else if(SG.sel){ SG.sel=null; renderSig(); }
   });
   SG.map.on('zoomend',()=>{ if(SG.D&&$('#sig').classList.contains('on')) sgDrawMap(SG.D); });
+  SG.map.on('moveend',()=>{ const k=sgBlock(); if(SG.quiet||!k||!$('#sig').classList.contains('on')) return; const m=SG.map.getCenter(); k.view={c:[m.lat,m.lng],z:SG.map.getZoom()}; sgSaveLater(); });
 }
 function sgLegend(){
   const P=SGP[SG.by];
@@ -1653,43 +1819,49 @@ function sgDrawMap(D){
     m.on('contextmenu',()=>{ if(confirm('Remove marker '+id+'?')) removePos(id); });
     m.on('dragend',()=>{ const q=m.getLatLng(); placePos(id,q.lat,q.lng); });
   });
+  SG.quiet=true;
   if(SG.fit){
     const pts=wp.map(x=>x.g).concat(ids.map(id=>[mk_[id].lat,mk_[id].lng]));
-    if(pts.length){ SG.map.fitBounds(L.latLngBounds(pts),{padding:[50,50],maxZoom:19}); SG.fit=false; }
-  }
+    if(pts.length){ SG.map.fitBounds(L.latLngBounds(pts),{padding:[50,50],maxZoom:19,animate:false}); SG.fit=false; }
+  } else if(SG.applyView){ const k=sgBlock(); if(k&&k.view) SG.map.setView(k.view.c,k.view.z,{animate:false}); SG.applyView=false; }
+  SG.quiet=false;
   sgLegend();
 }
 
 /* ---- batches (start / end / load / unload) ---- */
 function sgBatUI(D){
-  const el=$('#sgBat'), run=sgRunning();
+  const el=$('#sgBat'), run=sgRunning(), mine=BAT.filter(b=>inTab(b,SG.cur)), blk=sgBlock();
   if(BATerr){ el.innerHTML=`<b>Test batches</b><p class="h" style="margin:6px 0 0">Could not read the <b>test_batches</b> table (${esc(BATerr)}). Create it with the SQL, then press Sync now.</p>`; return; }
+  const bn=id=>{ const b=SB.find(x=>x.id===id); return b?b.name:'Unassigned'; };
   const top=run
-    ?`<span class="rec"><i></i> Recording: <b>${esc(run.name)}</b> · ${fmtDur(Date.now()-new Date(run.started_at))} · ${D.counts[run.id]||0} uploads</span><button class="b" id="sgEnd" style="border-color:#dc2626;color:#dc2626">■ End test</button>`
-    :`<button class="b p" id="sgStart">▶ Start test</button><span class="h">Starts a new batch. Every test upload that arrives while it runs is saved in it.</span>`;
+    ?`<span class="rec"><i></i> Recording: <b>${esc(run.name)}</b>${inTab(run,SG.cur)?'':` <span class="h">(in ${esc(bn(run.block_id))})</span>`} · ${fmtDur(Date.now()-new Date(run.started_at))} · ${D.counts[run.id]||0} uploads</span><button class="b" id="sgEnd" style="border-color:#dc2626;color:#dc2626">■ End test</button>`
+    :`<button class="b p" id="sgStart">▶ Start test</button><span class="h">Starts a new batch${blk?' in '+esc(blk.name):''}. Every test upload that arrives while it runs is saved in it.</span>`;
+  const mv=b=>SB.length?`<select data-mv="${esc(b.id)}" title="Move this batch to a block" style="width:120px"><option value="">Unassigned</option>${SB.map(x=>`<option value="${esc(x.id)}" ${b.block_id===x.id?'selected':''}>${esc(x.name)}</option>`).join('')}</select> `:'';
   const row=(id,name,sub,s,e,n,btn)=>`<tr class="${SG.loaded.has(id)?'ld':''}"><td><input type="checkbox" data-ld="${esc(id)}" ${SG.loaded.has(id)?'checked':''}></td><td><b>${esc(name)}</b>${sub}</td><td>${s}</td><td>${e}</td><td>${n}</td><td>${btn}</td></tr>`;
-  const bs=BAT.map(b=>{ const s=new Date(b.started_at), e=b.ended_at?new Date(b.ended_at):null, isRun=!b.ended_at;
+  const bs=mine.map(b=>{ const s=new Date(b.started_at), e=b.ended_at?new Date(b.ended_at):null, isRun=!b.ended_at;
     return row(b.id,b.name,isRun?' <span class="no">● recording</span>':'',s.toLocaleString(),e?e.toLocaleString():'–',
-      `${D.counts[b.id]||0} · ${fmtDur((e||Date.now())-s)}`,`<button class="b" data-rn="${esc(b.id)}" title="Rename">✎</button> <button class="b" data-del="${esc(b.id)}" title="Delete batch entry (data is kept)">🗑</button>`); }).join('');
-  const ub=D.counts.none?row('none','Unbatched uploads',' <span class="h">(outside any test)</span>','–','–',D.counts.none,''):'';
-  el.innerHTML=`<div class="bh"><b>Test batches</b>${top}<span class="sp"><button class="b" id="sgLoadAll">Load all</button><button class="b" id="sgUnload">Unload all</button></span></div>
-    ${bs||ub?`<div style="overflow:auto;max-height:200px"><table class="nt"><tr><th>Load</th><th>Batch</th><th>Started</th><th>Ended</th><th>Uploads · length</th><th></th></tr>${bs}${ub}</table></div>`:'<p class="h" style="margin:0">No batches yet. Press Start test, run the test with the app, then End test.</p>'}
-    <p class="h" style="margin:6px 0 0">Tick a batch to show it on the map, untick to unload it. Nothing is deleted: ending or unloading only changes what is shown.</p>`;
+      `${D.counts[b.id]||0} · ${fmtDur((e||Date.now())-s)}`,`${mv(b)}<button class="b" data-rn="${esc(b.id)}" title="Rename">✎</button> <button class="b" data-del="${esc(b.id)}" title="Delete batch entry (data is kept)">🗑</button>`); }).join('');
+  const ub=(SG.cur==='un'&&D.counts.none)?row('none','Unbatched uploads',' <span class="h">(outside any test)</span>','–','–',D.counts.none,''):'';
+  el.innerHTML=`<div class="bh"><b>Test batches${blk?' · '+esc(blk.name):''}</b>${top}<span class="sp"><button class="b" id="sgLoadAll">Load all</button><button class="b" id="sgUnload">Unload all</button></span></div>
+    ${bs||ub?`<div style="overflow:auto;max-height:200px"><table class="nt"><tr><th>Load</th><th>Batch</th><th>Started</th><th>Ended</th><th>Uploads · length</th><th></th></tr>${bs}${ub}</table></div>`:'<p class="h" style="margin:0">No batches here yet. Press Start test, run the test with the app, then End test.</p>'}
+    <p class="h" style="margin:6px 0 0">Tick a batch to show it on the map, untick to unload it. What you have loaded, your filters, the map view and the gateway/repeater places are saved with the block. Nothing is deleted.</p>`;
 }
 async function sgStart(){
   if(sgRunning()) return;
-  const n=BAT.length+1, d=new Date(), name=prompt('Name this test',`Test ${n} · ${d.toLocaleDateString([],{day:'numeric',month:'short'})} ${d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}`);
+  const n=BAT.length+1, d=new Date(), blk=sgBlock(), name=prompt('Name this test',`Test ${n} · ${d.toLocaleDateString([],{day:'numeric',month:'short'})} ${d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}`);
   if(name===null||!name.trim()) return;
-  const pos={}; ['GWV3','GWV4','RV3','RV4'].forEach(id=>{ if(GPOS[id]) pos[id]={lat:GPOS[id].lat,lng:GPOS[id].lng}; });
+  const src=blk?blk.pos:GPOS, pos={}; ['GWV3','GWV4','RV3','RV4'].forEach(id=>{ if(src[id]) pos[id]={lat:src[id].lat,lng:src[id].lng}; });
+  const body={name:name.trim(),pos}; if(blk) body.block_id=blk.id;
   try{
-    const r=await sbJ('POST','test_batches',{name:name.trim(),pos}); if(!r.ok) throw new Error('HTTP '+r.status);
+    const r=await sbJ('POST','test_batches',body); if(!r.ok) throw new Error('HTTP '+r.status);
     const row=(await r.json())[0]; BAT.unshift(row); SG.loaded.add(row.id); SG.fetched.add(row.id); sgSave(); SG.fit=true; renderSig();
-  }catch(e){ alert('Could not start the test: '+e.message+'. Is the test_batches table created with an insert policy?'); }
+  }catch(e){ alert('Could not start the test: '+e.message+'. Is the test_batches table created (with the block_id column if you use blocks) and an insert policy?'); }
 }
 async function sgEnd(){
   const run=sgRunning(); if(!run) return;
   if(!confirm(`End "${run.name}"? Its data stays saved in this batch.`)) return;
-  const pos=Object.assign({},run.pos||{}); ['GWV3','GWV4','RV3','RV4'].forEach(id=>{ if(GPOS[id]&&!(id in pos)) pos[id]={lat:GPOS[id].lat,lng:GPOS[id].lng}; });
+  const blk=(run.block_id&&SB.find(x=>x.id===run.block_id))||sgBlock(), src=blk?blk.pos:GPOS;
+  const pos=Object.assign({},run.pos||{}); ['GWV3','GWV4','RV3','RV4'].forEach(id=>{ if(src[id]&&!(id in pos)) pos[id]={lat:src[id].lat,lng:src[id].lng}; });
   const end=new Date().toISOString();
   try{
     const r=await sbJ('PATCH',`test_batches?id=eq.${run.id}`,{ended_at:end,pos},'return=minimal'); if(!r.ok) throw new Error('HTTP '+r.status);
@@ -1704,14 +1876,24 @@ async function sgFetchBatch(id){
   try{ const r=await fetch(`${SB_URL}/rest/v1/harvest_data?select=*&user_type=eq.T&${q}&order=created_at.desc&limit=5000`,{headers:sbH});
     if(r.ok){ mergeT(await r.json()); SG.fetched.add(id); } }catch(e){}
 }
-async function sgEnsure(){
+/* load what the current tab has saved: fetch its loaded tests, auto-load the latest test the first time */
+async function sgPrepare(){
   sgBM();
   if(!BATerr){
-    if(!SG.ready){ SG.ready=true; if(_sl===null){ const run=sgRunning()||BAT[0]; if(run){ SG.loaded.add(run.id); sgSave(); } } }
-    [...SG.loaded].forEach(i=>{ if(i!=='none'&&!SG.bm[i]) SG.loaded.delete(i); });
+    const mine=BAT.filter(b=>inTab(b,SG.cur));
+    if(SG.autoload){ SG.autoload=false; if(!SG.loaded.size){ const run=mine.find(b=>!b.ended_at)||mine[0]; if(run){ SG.loaded.add(run.id); sgSave(); } } }
+    [...SG.loaded].forEach(i=>{ if(i==='none'){ if(SG.cur!=='un') SG.loaded.delete(i); } else if(!SG.bm[i]||!inTab(SG.bm[i],SG.cur)) SG.loaded.delete(i); });
     for(const id of [...SG.loaded]) await sgFetchBatch(id);
   }
   if($('#sig').classList.contains('on')) renderSig();
+}
+async function sgEnsure(){
+  sgBM(); await sgBlocksFetch(); sgBM();
+  if(!SG.ready){
+    SG.ready=true; if(SG.cur!=='un'&&!sgBlock()) SG.cur='un';
+    sgApplyState(); const b=sgBlock(); SG.fit=!(b&&b.view); SG.applyView=!!(b&&b.view);
+  }
+  await sgPrepare();
 }
 async function syncTests(){
   const run=sgRunning(); if(!run) return;
@@ -1816,7 +1998,7 @@ function renderSig(){
   $('#sgNode').value=SG.node;
   $('#sg-seq').style.display=SG.tbl==='seq'?'':'none'; $('#sg-table').style.display=SG.tbl==='raw'?'':'none';
   document.querySelectorAll('[data-tb]').forEach(b=>b.classList.toggle('on',b.dataset.tb===SG.tbl));
-  sgBatUI(D); sgDrawMap(D); sgSide(D); sgCharts(D); sgSeqTable(D); sgTable(D);
+  sgTabsUI(); sgBatUI(D); sgDrawMap(D); sgSide(D); sgCharts(D); sgSeqTable(D); sgTable(D);
 }
 function sgTheme(){
   if(!SG.map) return;
@@ -1825,18 +2007,30 @@ function sgTheme(){
   if($('#sig').classList.contains('on')) renderSig();
 }
 function initSig(){
-  const on=(id,k,fit)=>{ $(id).onchange=e=>{ SG[k]=e.target.value; if(fit) SG.fit=true; renderSig(); }; };
+  const on=(id,k,fit)=>{ $(id).onchange=e=>{ SG[k]=e.target.value; if(fit) SG.fit=true; sgSaveLater(); renderSig(); }; };
   on('#sgSess','sess',1); on('#sgBy','by',0); on('#sgGw','gw',1); on('#sgPath','path',1); on('#sgNode','node',1); on('#sgCol','col',0);
-  $('#sgBase').onchange=e=>sgBase(e.target.value);
+  $('#sgBase').onchange=e=>{ sgBase(e.target.value); sgSaveLater(); };
   $('#sgFit').onclick=()=>{ SG.fit=true; renderSig(); };
-  $('#sgLines').onclick=()=>{ SG.lines=!SG.lines; $('#sgLines').textContent='〰 Connect points: '+(SG.lines?'On':'Off'); $('#sgLines').classList.toggle('on',SG.lines); renderSig(); };
-  $('#sgRings').onclick=()=>{ SG.rings=!SG.rings; $('#sgRings').textContent='⭕ Distance rings: '+(SG.rings?'On':'Off'); $('#sgRings').classList.toggle('on',SG.rings); renderSig(); };
+  $('#sgLines').onclick=()=>{ SG.lines=!SG.lines; sgApplyUI(); sgSaveLater(); renderSig(); };
+  $('#sgRings').onclick=()=>{ SG.rings=!SG.rings; sgApplyUI(); sgSaveLater(); renderSig(); };
   document.querySelectorAll('[data-place]').forEach(b=>b.onclick=()=>{
     const same=SG.place===b.dataset.place; SG.place=same?null:b.dataset.place;
     document.querySelectorAll('[data-place]').forEach(x=>x.classList.toggle('on',x===b&&!same));
     $('#sgmap').style.cursor=SG.place?'crosshair':''; $('#sgMsg').textContent=SG.place?'Click the map where '+SG.place+' is placed':'';
   });
-  document.querySelectorAll('[data-tb]').forEach(b=>b.onclick=()=>{ SG.tbl=b.dataset.tb; renderSig(); });
+  document.querySelectorAll('[data-tb]').forEach(b=>b.onclick=()=>{ SG.tbl=b.dataset.tb; sgSaveLater(); renderSig(); });
+  $('#sgTabs').onclick=e=>{ const t=e.target.closest('button'); if(!t||!t.dataset.sb) return; if(t.dataset.sb==='new') sgNewBlock(); else sgSwitch(t.dataset.sb); };
+  $('#sgSaveBtn').onclick=()=>{ SG.dirty=true; sgCapture(); sgBlkSave(); };
+  $('#sgRename').onclick=()=>{ const b=sgBlock(); if(!b) return; const n=prompt('Rename block',b.name); if(!n||!n.trim()) return; b.name=n.trim(); sgSaveLater(); renderSig(); };
+  $('#sgDelBlock').onclick=async()=>{
+    const b=sgBlock(); if(!b) return;
+    if(!confirm(`Delete the block "${b.name}"?\nIts saved view, filters and gateway/repeater places are removed. Its tests and their uploads are NOT deleted; they move to "Unassigned".`)) return;
+    try{
+      await sbJ('PATCH',`test_batches?block_id=eq.${b.id}`,{block_id:null},'return=minimal').catch(()=>{});
+      const r=await sbJ('DELETE',`signal_blocks?id=eq.${b.id}`,undefined,'return=minimal'); if(!r.ok) throw new Error('HTTP '+r.status);
+      BAT.forEach(x=>{ if(x.block_id===b.id) x.block_id=null; }); SB=SB.filter(x=>x.id!==b.id); SG.dirty=false; await sgSwitch('un');
+    }catch(x){ alert('Could not delete: '+x.message); }
+  };
   const pick=e=>{
     const tr=e.target.closest('tr[data-k]'); if(!tr) return;
     SG.sel=tr.dataset.k; const x=sgData().forDel.find(v=>v.k===SG.sel);
@@ -1845,6 +2039,10 @@ function initSig(){
   $('#sg-table').addEventListener('click',pick); $('#sg-seq').addEventListener('click',pick);
   const bat=$('#sgBat');
   bat.addEventListener('change',async e=>{
+    const mvId=e.target.dataset.mv;
+    if(mvId){ const b=BAT.find(x=>x.id===mvId); if(!b) return; const v=e.target.value||null; b.block_id=v;
+      sbJ('PATCH',`test_batches?id=eq.${b.id}`,{block_id:v},'return=minimal').catch(()=>{});
+      if(!inTab(b,SG.cur)){ SG.loaded.delete(b.id); sgSave(); } return renderSig(); }
     const id=e.target.dataset.ld; if(!id) return;
     if(e.target.checked){ SG.loaded.add(id); sgSave(); SG.fit=true; sgBM(); await sgFetchBatch(id); } else { SG.loaded.delete(id); sgSave(); }
     renderSig();
@@ -1854,7 +2052,7 @@ function initSig(){
     if(t.id==='sgStart') return sgStart();
     if(t.id==='sgEnd') return sgEnd();
     if(t.id==='sgUnload'){ SG.loaded.clear(); sgSave(); SG.sel=null; return renderSig(); }
-    if(t.id==='sgLoadAll'){ BAT.forEach(b=>SG.loaded.add(b.id)); sgSave(); SG.fit=true; sgBM(); for(const b of BAT) await sgFetchBatch(b.id); return renderSig(); }
+    if(t.id==='sgLoadAll'){ const mine=BAT.filter(b=>inTab(b,SG.cur)); mine.forEach(b=>SG.loaded.add(b.id)); sgSave(); SG.fit=true; sgBM(); for(const b of mine) await sgFetchBatch(b.id); return renderSig(); }
     if(t.dataset.rn){ const b=BAT.find(x=>x.id===t.dataset.rn); if(!b) return; const n=prompt('Rename batch',b.name); if(!n||!n.trim()) return;
       b.name=n.trim(); sbJ('PATCH',`test_batches?id=eq.${b.id}`,{name:b.name},'return=minimal').catch(()=>{}); return renderSig(); }
     if(t.dataset.del){ const b=BAT.find(x=>x.id===t.dataset.del); if(!b) return;
@@ -1864,13 +2062,390 @@ function initSig(){
   });
   $('#sgCsv').onclick=()=>{
     const q=v=>'"'+String(v??'').replace(/"/g,'""')+'"', D=sgData();
-    const H=['batch','created_at','session','order','gateway_id','node_id','relay_id','hop_count','path','rssi','snr','freq_err','latitude','longitude','gps_source','distance_m','bearing_deg'];
-    dl('signal_test.csv',H.join(',')+'\n'+[...D.rows].sort((a,b)=>a.t-b.t).map(x=>{ const r=x.r;
-      return [SG.bm[x.bt]?SG.bm[x.bt].name:'Unbatched',r.created_at,x.s,x.o,r.gateway_id,r.node_id,r.relay_id,r.hop_count,pathOf(r).l,r.rssi,r.snr,r.freq_err,r.latitude,r.longitude,r.gps_source,x.d==null?'':x.d.toFixed(1),x.b==null?'':x.b.toFixed(0)].map(q).join(','); }).join('\n'));
+    const H=['block','batch','created_at','session','order','gateway_id','node_id','relay_id','hop_count','path','rssi','snr','freq_err','latitude','longitude','gps_source','distance_m','bearing_deg'];
+    const blk=sgBlock();
+    dl('signal_test'+(blk?'_'+blk.name.replace(/\W+/g,'_'):'')+'.csv',H.join(',')+'\n'+[...D.rows].sort((a,b)=>a.t-b.t).map(x=>{ const r=x.r;
+      return [blk?blk.name:'',SG.bm[x.bt]?SG.bm[x.bt].name:'Unbatched',r.created_at,x.s,x.o,r.gateway_id,r.node_id,r.relay_id,r.hop_count,pathOf(r).l,r.rssi,r.snr,r.freq_err,r.latitude,r.longitude,r.gps_source,x.d==null?'':x.d.toFixed(1),x.b==null?'':x.b.toFixed(0)].map(q).join(','); }).join('\n'));
   };
 }
+
 initSig();
 setInterval(syncTests,6000);
+
+/* ============ Heatmap tab (user type M, saved blocks / sites) ============ */
+const HM_DEF={metric:'rssi',gw:'best',cell:50,min:2,acc:15,path:'all',node:'all',since:'0',base:'google_sat',op:.75,cells:true,style:'smooth',samples:false,rings:true,origin:null,
+  scale:{rssi:[-130,-70],snr:[-20,10],delivery:[0,100],elev:null,count:null},cfg:{freq:'',sf:'12',bw:'125',pw:'22',gh:'',nh:'',note:''}};
+const HM={map:null,tiles:null,cellL:null,sampL:null,mkL:null,cur:null,sel:null,place:null,fit:true,applyView:false,quiet:false,tok:0,timer:null,dirty:false,last:{},el:{},full:false,D:null};
+try{ HM.cur=localStorage.getItem('hmcur'); }catch(e){}
+let HB=[], HBerr='', HMS=[], HMCODES={};
+const HM_RUN_GAP=30*60000;
+const HMM={rssi:['RSSI (median)','dBm'],snr:['SNR (median)','dB'],delivery:['Delivery (estimated)','%'],elev:['Terrain height','m asl'],count:['Sample count','']};
+const SNR_LIM={6:-5,7:-7.5,8:-10,9:-12.5,10:-15,11:-17.5,12:-20};
+const RAMP_SIG=[[0,[220,38,38]],[.33,[249,115,22]],[.66,[234,179,8]],[1,[22,163,74]]], RAMP_VIR=[[0,[68,1,84]],[.5,[33,145,140]],[1,[253,231,37]]];
+const hmClone=o=>JSON.parse(JSON.stringify(o));
+const hmCode=s=>String(s||'').toUpperCase().replace(/[^A-Z0-9_]/g,'').slice(0,20);
+function hmNorm(b){ const s=b.settings||{}; b.settings=Object.assign(hmClone(HM_DEF),s); b.settings.scale=Object.assign(hmClone(HM_DEF.scale),s.scale||{}); b.settings.cfg=Object.assign(hmClone(HM_DEF.cfg),s.cfg||{}); b.pos=b.pos||{}; return b; }
+const hmBlock=()=>HB.find(b=>b.id===HM.cur)||null;
+const hmS=b=>(b||hmBlock()).settings;
+const hmSens=S=>{ const sf=+S.cfg.sf||12, bw=(+S.cfg.bw||125)*1000; return -174+10*Math.log10(bw)+6+(SNR_LIM[sf]!==undefined?SNR_LIM[sf]:-20); };
+function rampAt(R,t){ t=Math.max(0,Math.min(1,t)); for(let i=1;i<R.length;i++){ if(t<=R[i][0]){ const a=R[i-1],b=R[i],f=(t-a[0])/(b[0]-a[0]); return 'rgb('+[0,1,2].map(k=>Math.round(a[1][k]+(b[1][k]-a[1][k])*f)).join(',')+')'; } } return 'rgb('+R[R.length-1][1].join(',')+')'; }
+const hmRamp=m=>(m==='elev'||m==='count')?RAMP_VIR:RAMP_SIG;
+const hmColor=(m,v,lo,hi)=>rampAt(hmRamp(m),hi>lo?(v-lo)/(hi-lo):.5);
+const hmGrad=m=>'linear-gradient(90deg,'+hmRamp(m).map(s=>`rgb(${s[1].join(',')}) ${s[0]*100}%`).join(',')+')';
+const hmVal=(e,m)=>m==='rssi'?e.rssi:m==='snr'?e.snrm:m==='delivery'?e.del:m==='count'?e.recv:e.elev;
+const hmVis=(e,m,min)=>m==='delivery'?(e.recv+e.lost>=min):m==='count'?e.recv>=1:m==='elev'?true:(e.recv>=min||(e.recv===0&&e.lost>=min));
+const hmDead=(e,m)=>(m==='rssi'||m==='snr')&&e.recv===0;
+
+/* ---- data: one block = samples whose label starts with its code (CODE-001) ---- */
+function mergeM(rows){ const m=new Map(); HMS.forEach(r=>m.set(r.id??rk(r),r)); rows.forEach(r=>m.set(r.id??rk(r),r)); HMS=[...m.values()]; }
+async function hmFetch(code,full){
+  const since=(!full&&HM.last[code])?`&created_at=gte.${encodeURIComponent(new Date(HM.last[code]-60000).toISOString())}`:'';
+  let off=0, newest=(!full&&HM.last[code])||0;
+  for(let pg=0;pg<30;pg++){
+    const r=await fetch(`${SB_URL}/rest/v1/harvest_data?select=*&user_type=eq.M&or=(qr_id.eq.${code},qr_id.like.${code}-*)${since}&order=created_at.desc&limit=1000&offset=${off}`,{headers:sbH});
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const part=await r.json(); mergeM(part);
+    part.forEach(x=>{ const t=new Date(x.created_at).getTime(); if(t>newest) newest=t; });
+    if(part.length<1000) break; off+=1000;
+  }
+  HM.last[code]=newest||Date.now();
+}
+async function hmSync(){
+  try{
+    const r=await fetch(`${SB_URL}/rest/v1/heatmap_blocks?select=*&order=created_at.asc`,{headers:sbH});
+    if(r.ok){ const rows=(await r.json()).map(hmNorm); if(!HM.dirty) HB=rows; else rows.forEach(n=>{ if(!HB.some(b=>b.id===n.id)) HB.push(n); }); HBerr=''; } else HBerr='HTTP '+r.status;
+  }catch(e){ HBerr='offline'; }
+  try{
+    const d=await fetch(`${SB_URL}/rest/v1/harvest_data?select=qr_id,created_at&user_type=eq.M&order=created_at.desc&limit=2000`,{headers:sbH});
+    if(d.ok){ HMCODES={}; (await d.json()).forEach(x=>{ const c=sgLabel(x).s, o=HMCODES[c]||(HMCODES[c]={n:0}); o.n++; }); }
+  }catch(e){}
+  if(!HBerr){ if(!hmBlock()) HM.cur=HB[0]?HB[0].id:null; const b=hmBlock(); if(b){ try{ await hmFetch(b.code,!HM.last[b.code]); }catch(e){} } }
+  if($('#hm').classList.contains('on')) renderHm();
+}
+
+/* ---- compute: packets -> received / lost -> grid cells ---- */
+function hmPackets(list){
+  const P=new Map();
+  list.forEach(x=>{
+    const ts=+x.r.device_timestamp, key=x.run+'|'+(x.n!=null?x.s+'|'+x.n:'t|'+String(x.r.node_id||'')+'|'+(ts||Math.round(x.t/5000)));
+    let p=P.get(key); if(!p){ p={key,s:x.s,n:x.n,g:x.g,t:x.t,run:x.run,reads:{}}; P.set(key,p); }
+    const gid=x.gid||'?'; if(!p.reads[gid]||+x.r.rssi>+p.reads[gid].r.rssi) p.reads[gid]=x;
+    if(x.t<p.t) p.t=x.t;
+  });
+  return [...P.values()];
+}
+const hmRead=(p,sel)=>{ if(sel!=='best') return p.reads[sel]||null; let b=null; Object.values(p.reads).forEach(x=>{ if(!b||+x.r.rssi>+b.r.rssi) b=x; }); return b; };
+function hmCompute(b){
+  const S=hmS(b), rows=HMS.filter(r=>sgLabel(r).s===b.code).map(r=>{ const l=sgLabel(r);
+    return {r,s:l.s,n:l.n,g:recGPS(r),acc:r.gps_acc==null?null:+r.gps_acc,pk:pathOf(r).k,t:new Date(r.created_at).getTime(),gid:gpKey(r.gateway_id),run:0}; }).sort((a,c)=>a.t-c.t);
+  let run=0; rows.forEach((x,i)=>{ if(i&&x.t-rows[i-1].t>HM_RUN_GAP) run++; x.run=run; });
+  const gws=[...new Set(rows.map(x=>x.gid).filter(Boolean))].sort(), nodes=[...new Set(rows.map(x=>String(x.r.node_id||'').trim()).filter(Boolean))].sort();
+  const lim=+S.since?Date.now()-S.since*36e5:0; let nAcc=0, nGps=0;
+  const used=rows.filter(x=>{
+    if(lim&&x.t<lim) return false;
+    if(S.path!=='all'&&x.pk!==S.path) return false;
+    if(S.node!=='all'&&String(x.r.node_id||'').trim()!==S.node) return false;
+    if(!x.g){ nGps++; return false; }
+    if(x.acc!=null&&x.acc>S.acc){ nAcc++; return false; }
+    return true; });
+  const packets=hmPackets(used), sel=(S.gw==='best'||!gws.includes(S.gw))?'best':S.gw, recv=[], lost=[];
+  packets.forEach(p=>{ const rd=hmRead(p,sel); if(rd) recv.push({p,rd}); else lost.push({pos:p.g,exact:true}); });
+  const by={}; packets.forEach(p=>{ if(p.n!=null) (by[p.run+'|'+p.s]=by[p.run+'|'+p.s]||[]).push(p); });
+  Object.values(by).forEach(a=>{ a.sort((x,y)=>x.n-y.n);
+    for(let i=1;i<a.length;i++){ const x=a[i-1], y=a[i], gap=y.n-x.n;
+      if(gap>1&&gap<=60) for(let k=1;k<gap;k++){ const f=k/gap; lost.push({pos:[x.g[0]+(y.g[0]-x.g[0])*f,x.g[1]+(y.g[1]-x.g[1])*f],exact:false}); } } });
+  if(!S.origin){ const f=used.find(x=>x.g); if(f){ S.origin=[f.g[0],f.g[1]]; hmSaveLater(); } }
+  const o=S.origin||[3.5,102.4], c=+S.cell, mL=111320*Math.cos(o[0]*Math.PI/180), mT=110574, C=new Map();
+  const cell=(la,lo)=>{ const ix=Math.floor((lo-o[1])*mL/c), iy=Math.floor((la-o[0])*mT/c), k=ix+','+iy; let e=C.get(k);
+    if(!e){ e={k,ix,iy,vals:[],snr:[],recv:0,lost:0,reads:[],b:[[o[0]+iy*c/mT,o[1]+ix*c/mL],[o[0]+(iy+1)*c/mT,o[1]+(ix+1)*c/mL]],lat:o[0]+(iy+.5)*c/mT,lng:o[1]+(ix+.5)*c/mL}; C.set(k,e); } return e; };
+  recv.forEach(q=>{ const e=cell(q.p.g[0],q.p.g[1]); e.recv++; e.vals.push(+q.rd.r.rssi); e.snr.push(+q.rd.r.snr); e.reads.push(q.rd); });
+  lost.forEach(q=>{ cell(q.pos[0],q.pos[1]).lost++; });
+  const cells=[...C.values()]; const base=b.id+'|'+c+'|';
+  cells.forEach(e=>{ e.rssi=medA(e.vals); e.mean=avgA(e.vals); e.min=e.vals.length?Math.min(...e.vals):null; e.max=e.vals.length?Math.max(...e.vals):null; e.snrm=medA(e.snr);
+    e.del=(e.recv+e.lost)?e.recv/(e.recv+e.lost)*100:null; e.elev=HM.el[base+e.k]; });
+  return {S,rows,used,packets,recv,lost,cells,cmap:C,gws,nodes,sel,nAcc,nGps,base};
+}
+async function hmElev(D){
+  await Promise.all(D.cells.map(async e=>{ const k=D.base+e.k; if(HM.el[k]===undefined){ try{ HM.el[k]=await elevOnline(e.lat,e.lng); }catch(x){ HM.el[k]=null; } } e.elev=HM.el[k]; }));
+}
+function hmRange(S,D){
+  const sc=S.scale[S.metric]; if(sc) return sc;
+  const v=D.cells.filter(e=>hmVis(e,S.metric,S.min)).map(e=>hmVal(e,S.metric)).filter(x=>x!=null&&isFinite(x));
+  return v.length?[Math.floor(Math.min(...v)),Math.max(Math.ceil(Math.max(...v)),Math.floor(Math.min(...v))+1)]:[0,1];
+}
+const hmFmt=(S,v)=>v==null?'–':S.metric==='rssi'||S.metric==='snr'?f1(v,0):S.metric==='delivery'?f1(v,0)+'%':f1(v,0);
+function hmGwFor(b,sel,lat,lng){
+  if(sel!=='best'&&b.pos[sel]) return {id:sel,p:b.pos[sel]};
+  let best=null; Object.keys(b.pos).filter(k=>k[0]==='G').forEach(k=>{ const d=hav(b.pos[k].lat,b.pos[k].lng,lat,lng); if(!best||d<best.d) best={id:k,p:b.pos[k],d}; });
+  return best;
+}
+
+/* ---- save (autosave) ---- */
+function hmSaveLater(){ HM.dirty=true; clearTimeout(HM.timer); const s=$('#hmSaved'); if(s) s.textContent='Unsaved changes…'; HM.timer=setTimeout(hmSave,1200); }
+async function hmSave(){
+  clearTimeout(HM.timer); const b=hmBlock(); if(!b||!HM.dirty) return; HM.dirty=false;
+  try{
+    const r=await sbJ('PATCH',`heatmap_blocks?id=eq.${b.id}`,{name:b.name,settings:b.settings,pos:b.pos,view:b.view||null,updated_at:new Date().toISOString()},'return=minimal');
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    $('#hmSaved').textContent='Saved ✓ '+new Date().toLocaleTimeString();
+  }catch(e){ HM.dirty=true; $('#hmSaved').textContent='Save failed: '+e.message; }
+}
+
+/* ---- blocks ---- */
+async function hmSwitch(id){
+  await hmSave(); HM.cur=id; try{ localStorage.setItem('hmcur',id); }catch(e){}
+  HM.sel=null; const b=hmBlock(); HM.fit=!(b&&b.view); HM.applyView=!!(b&&b.view);
+  hmApplyUI();
+  if(b){ try{ await hmFetch(b.code,!HM.last[b.code]); }catch(e){} }
+  renderHm();
+}
+async function hmNew(code0){
+  const nm=prompt('Block / site name',code0||''); if(!nm||!nm.trim()) return;
+  const code=hmCode(prompt('Label code the app sends for this block (letters, digits and _ only). The app labels samples like CODE-001.',hmCode(code0||nm)));
+  if(!code) return;
+  if(HB.some(b=>b.code===code)){ alert('That code is already used by another block.'); return; }
+  const c=HM.map?HM.map.getCenter():null, view=(c&&!code0)?{c:[c.lat,c.lng],z:HM.map.getZoom()}:null;
+  try{
+    const r=await sbJ('POST','heatmap_blocks',{name:nm.trim(),code,view,pos:{},settings:{}}); if(!r.ok) throw new Error('HTTP '+r.status);
+    const row=hmNorm((await r.json())[0]); HB.push(row); await hmSwitch(row.id);
+  }catch(e){ alert('Could not create the block: '+e.message+'. Is the heatmap_blocks table created with policies?'); }
+}
+function hmTabs(){
+  const el=$('#hmTabs');
+  if(!HB.some(b=>b.id===HM.cur)) HM.cur=HB[0]?HB[0].id:null;
+  const codes=new Set(HB.map(b=>b.code)), nw=Object.keys(HMCODES).filter(c=>!codes.has(c));
+  el.innerHTML=HB.map(b=>`<button class="tb ${b.id===HM.cur?'on':''}" data-hb="${esc(b.id)}">${esc(b.name)}</button>`).join('')
+    +'<button class="tb" data-hb="new">＋ New block</button>'
+    +nw.map(c=>`<button class="tb" data-hnew="${esc(c)}" title="Data with this label code has no block yet">＋ ${esc(c)} (${HMCODES[c].n})</button>`).join('');
+}
+
+/* ---- map ---- */
+function hmBase(k){
+  if(HM.tiles) HM.map.removeLayer(HM.tiles); HM.tiles=null; if(!BM[k]) return;
+  HM.tiles=L.tileLayer(BM[k][0],{maxZoom:21,maxNativeZoom:BM[k][2]||18,attribution:BM[k][1]}).addTo(HM.map); HM.tiles.bringToBack();
+}
+function hmInit(){
+  HM.map=L.map('hmmap',{preferCanvas:true,maxZoom:21}).setView([3.52,102.42],15);
+  HM.map.createPane('hmheat').style.zIndex=350;
+  HM.cellL=L.layerGroup().addTo(HM.map); HM.sampL=L.layerGroup().addTo(HM.map); HM.mkL=L.layerGroup().addTo(HM.map);
+  hmBase('google_sat');
+  HM.map.on('click',e=>{
+    const b=hmBlock(); if(!b) return;
+    if(HM.place){ const id=HM.place; HM.place=null; $('#hmmap').style.cursor=''; document.querySelectorAll('[data-hplace]').forEach(x=>x.classList.remove('on')); b.pos[id]={lat:e.latlng.lat,lng:e.latlng.lng}; hmSaveLater(); renderHm(); }
+    else{
+      const S=hmS(b);
+      if(S.cells&&S.style==='smooth'){ const c=hmCellAt(e.latlng); if(c){ HM.sel=c.k; renderHm(); return; } }
+      if(HM.sel){ HM.sel=null; renderHm(); }
+    }
+  });
+  HM.map.on('mousemove',e=>{
+    const h=$('#hmHover'), b=hmBlock(); if(!b||!HM.D||HM.place){ h.style.display='none'; return; }
+    const S=HM.D.S; if(!(S.cells&&S.style==='smooth')){ h.style.display='none'; return; }
+    const c=hmCellAt(e.latlng); if(!c){ h.style.display='none'; return; }
+    h.innerHTML=hmTip(c,S.metric,S); h.style.display='block';
+  });
+  HM.map.on('mouseout',()=>{ $('#hmHover').style.display='none'; });
+  HM.map.on('moveend',()=>{ const b=hmBlock(); if(HM.quiet||!b||!$('#hm').classList.contains('on')) return; const c=HM.map.getCenter(); b.view={c:[c.lat,c.lng],z:HM.map.getZoom()}; hmSaveLater(); });
+}
+function hmTip(e,m,S){ return `${HMM[m][0]}: <b>${hmDead(e,m)?'no signal':hmFmt(S,hmVal(e,m))+' '+HMM[m][1]}</b><br>${e.recv} sample(s)${e.lost?` · ~${e.lost} lost`:''}`; }
+/* ---- smooth (seamless) heat layer: values are blended between cell centres ---- */
+function rampRGB(R,t){ t=Math.max(0,Math.min(1,t)); for(let i=1;i<R.length;i++){ if(t<=R[i][0]){ const a=R[i-1],b=R[i],f=(t-a[0])/(b[0]-a[0]); return [0,1,2].map(k=>Math.round(a[1][k]+(b[1][k]-a[1][k])*f)); } } return R[R.length-1][1].slice(); }
+function hmSmoothColor(m,v,lo,hi){
+  const t=hi>lo?(v-lo)/(hi-lo):.5;
+  if(t<0&&(m==='rssi'||m==='snr')){ const f=Math.min(1,-t/0.12), a=RAMP_SIG[0][1], b=[127,29,29]; return [0,1,2].map(k=>Math.round(a[k]+(b[k]-a[k])*f)); }
+  return rampRGB(hmRamp(m),t);
+}
+/* vis = [{ix,iy,v}] ; returns RGBA pixels, rows top to bottom */
+function hmRaster(vis,m,lo,hi,maxPx){
+  const xs=vis.map(o=>o.ix), ys=vis.map(o=>o.iy), x0=Math.min(...xs)-1, y0=Math.min(...ys)-1, nx=Math.max(...xs)-x0+2, ny=Math.max(...ys)-y0+2;
+  const pxc=Math.max(2,Math.min(14,Math.floor(maxPx/Math.max(nx,ny)))), W=nx*pxc, H=ny*pxc;
+  const V=new Float32Array(nx*ny).fill(NaN); vis.forEach(o=>{ V[(o.iy-y0)*nx+(o.ix-x0)]=o.v; });
+  const d=new Uint8ClampedArray(W*H*4), ss=(a,b,x)=>{ const t=Math.max(0,Math.min(1,(x-a)/(b-a))); return t*t*(3-2*t); };
+  for(let py=0;py<H;py++){
+    const gy=(H-py-.5)/pxc-.5, j=Math.floor(gy), ty=gy-j;
+    for(let px=0;px<W;px++){
+      const gx=(px+.5)/pxc-.5, i=Math.floor(gx), tx=gx-i; let sw=0, sv=0;
+      for(let dj=0;dj<2;dj++)for(let di=0;di<2;di++){
+        const ii=i+di, jj=j+dj; if(ii<0||jj<0||ii>=nx||jj>=ny) continue;
+        const v=V[jj*nx+ii]; if(v!==v) continue;
+        const w=(di?tx:1-tx)*(dj?ty:1-ty); sw+=w; sv+=w*v;
+      }
+      if(sw<.02) continue;
+      const rgb=hmSmoothColor(m,sv/sw,lo,hi), k=(py*W+px)*4; d[k]=rgb[0]; d[k+1]=rgb[1]; d[k+2]=rgb[2]; d[k+3]=Math.round(255*ss(.12,.6,sw));
+    }
+  }
+  return {d,W,H,x0,y0,nx,ny};
+}
+function hmSmooth(D,S,lo,hi){
+  const m=S.metric, vis=[];
+  D.cells.filter(e=>hmVis(e,m,S.min)).forEach(e=>{ let v=hmDead(e,m)?lo-.12*(hi-lo):hmVal(e,m); if(v!=null&&isFinite(v)) vis.push({ix:e.ix,iy:e.iy,v}); });
+  if(vis.length&&S.origin){
+    const R=hmRaster(vis,m,lo,hi,1200), cv=document.createElement('canvas'); cv.width=R.W; cv.height=R.H;
+    const cx=cv.getContext('2d'), img=cx.createImageData(R.W,R.H); img.data.set(R.d); cx.putImageData(img,0,0);
+    const o=S.origin, c=+S.cell, mL=111320*Math.cos(o[0]*Math.PI/180), mT=110574;
+    L.imageOverlay(cv.toDataURL(),[[o[0]+R.y0*c/mT,o[1]+R.x0*c/mL],[o[0]+(R.y0+R.ny)*c/mT,o[1]+(R.x0+R.nx)*c/mL]],{opacity:S.op,interactive:false,pane:'hmheat'}).addTo(HM.cellL);
+  }
+  const sel=HM.sel&&D.cells.find(e=>e.k===HM.sel); if(sel) L.rectangle(sel.b,{color:'#ffffff',weight:2.5,fill:false,interactive:false}).addTo(HM.cellL);
+}
+function hmCellAt(ll){
+  const D=HM.D; if(!D||!D.S.origin) return null; const S=D.S, o=S.origin, c=+S.cell, mL=111320*Math.cos(o[0]*Math.PI/180), mT=110574;
+  const e=D.cmap.get(Math.floor((ll.lng-o[1])*mL/c)+','+Math.floor((ll.lat-o[0])*mT/c));
+  return e&&hmVis(e,S.metric,S.min)?e:null;
+}
+function hmDraw(b,D){
+  const S=D.S, m=S.metric, [lo,hi]=hmRange(S,D);
+  HM.cellL.clearLayers(); HM.sampL.clearLayers(); HM.mkL.clearLayers();
+  const bounds=[];
+  if(S.cells&&S.style==='smooth') hmSmooth(D,S,lo,hi);
+  else if(S.cells) D.cells.filter(e=>hmVis(e,m,S.min)).forEach(e=>{
+    const dead=hmDead(e,m), v=hmVal(e,m); if(!dead&&(v==null||!isFinite(v))) return;
+    const sel=HM.sel===e.k;
+    L.rectangle(e.b,{stroke:sel,color:'#000',weight:3,fillColor:dead?'#7f1d1d':hmColor(m,v,lo,hi),fillOpacity:S.op,bubblingMouseEvents:false})
+      .bindTooltip(hmTip(e,m,S),{sticky:true}).on('click',()=>{ HM.sel=e.k; renderHm(); }).addTo(HM.cellL);
+  });
+  D.cells.forEach(e=>bounds.push(e.b[0],e.b[1]));
+  if(S.samples) D.recv.forEach(q=>{ L.circleMarker(q.p.g,{radius:3,color:'#111',weight:.7,fillColor:bandClr(RSSI_B,+q.rd.r.rssi),fillOpacity:1,bubblingMouseEvents:false})
+      .bindTooltip(`#${q.p.n??'–'} · ${esc(q.rd.gid)} · ${q.rd.r.rssi} dBm / ${q.rd.r.snr} dB${q.rd.acc!=null?' · ±'+q.rd.acc+' m':''}`,{sticky:true}).addTo(HM.sampL); });
+  const ids=Object.keys(b.pos);
+  if(S.rings&&ids.length){
+    const ds=[]; D.recv.forEach(q=>{ const g=b.pos[q.rd.gid]; if(g) ds.push(hav(g.lat,g.lng,q.p.g[0],q.p.g[1])); });
+    const mx=ds.length?Math.max(...ds):500, step=sgStep(mx), nr=Math.max(2,Math.min(8,Math.ceil(mx/step))), seen=[];
+    ids.filter(id=>id[0]==='G').forEach(id=>{ const p=b.pos[id]; if(seen.some(q=>hav(q.lat,q.lng,p.lat,p.lng)<5)) return; seen.push(p);
+      for(let i=1;i<=nr;i++){ const r=i*step;
+        L.circle([p.lat,p.lng],{radius:r,color:'#f97316',weight:1.5,dashArray:'5 5',fill:false,interactive:false}).addTo(HM.mkL);
+        L.marker([p.lat+r/111320,p.lng],{interactive:false,icon:L.divIcon({className:'rl',html:r>=1000?(r/1000)+' km':r+' m',iconSize:[44,12],iconAnchor:[22,6]})}).addTo(HM.mkL); } });
+  }
+  ids.forEach(id=>{
+    const p=b.pos[id], hw=hwOf(id); bounds.push([p.lat,p.lng]);
+    const mk=L.marker([p.lat,p.lng],{draggable:true,zIndexOffset:1000,icon:L.divIcon({className:'gwi',html:`<span class="gwm ${hw||''} ${id[0]==='R'?'rel':''}">${id}</span>`,iconSize:[56,20],iconAnchor:[28,10]})}).addTo(HM.mkL);
+    mk.bindTooltip('Drag to move · click for options');
+    const box=document.createElement('div'); box.innerHTML=`<b>${id}</b><br><span class="h">Drag the marker to move it</span><br>`;
+    const rm=document.createElement('button'); rm.className='b'; rm.style.marginTop='6px'; rm.textContent='🗑 Remove marker';
+    rm.onclick=()=>{ HM.map.closePopup(); delete b.pos[id]; hmSaveLater(); renderHm(); }; box.appendChild(rm); mk.bindPopup(box);
+    mk.on('dragend',()=>{ const q=mk.getLatLng(); b.pos[id]={lat:q.lat,lng:q.lng}; hmSaveLater(); renderHm(); });
+    mk.on('contextmenu',()=>{ if(confirm('Remove marker '+id+'?')){ delete b.pos[id]; hmSaveLater(); renderHm(); } });
+  });
+  HM.quiet=true;
+  if(HM.fit){ if(bounds.length){ HM.map.fitBounds(L.latLngBounds(bounds),{padding:[40,40],maxZoom:19,animate:false}); HM.fit=false; } }
+  else if(HM.applyView&&b.view){ HM.map.setView(b.view.c,b.view.z,{animate:false}); HM.applyView=false; }
+  HM.quiet=false;
+}
+function hmLegend(S,D){
+  const m=S.metric, [lo,hi]=hmRange(S,D), u=HMM[m][1];
+  const h=`<span class="hmchip"><b>${HMM[m][0]}</b> ${f1(lo,0)}<span class="hmramp" style="background:${hmGrad(m)}"></span>${f1(hi,0)} ${u}</span>`
+    +((m==='rssi'||m==='snr')?'<span><i style="background:#7f1d1d;border-color:#fecaca"></i>No signal (packets lost)</span>':'')
+    +`<span>${S.cell} m cells · min ${S.min} sample(s)${m==='delivery'?' · lost packets are estimated from gaps in the numbering':''}</span>`;
+  $('#hmLg').innerHTML=h; $('#hmLg2').innerHTML=h;
+}
+
+/* ---- side panel ---- */
+function hmCellHtml(b,S,D,e){
+  const g=hmGwFor(b,D.sel,e.lat,e.lng), dist=g?hav(g.p.lat,g.p.lng,e.lat,e.lng):null, sens=hmSens(S);
+  const smp=[...e.reads].sort((x,y)=>y.t-x.t).slice(0,8).map(x=>`<tr><td>${new Date(x.t).toLocaleTimeString()}</td><td>${esc(x.gid)}</td><td>${x.r.rssi}</td><td>${x.r.snr}</td><td>${x.acc!=null?'±'+x.acc:'–'}</td></tr>`).join('');
+  return `<h3>Cell ${esc(e.k)}</h3><p class="h" style="margin:-4px 0 8px">${S.cell} × ${S.cell} m · ${e.lat.toFixed(5)}, ${e.lng.toFixed(5)}</p>
+    <div class="sgbox">${e.recv?`RSSI median <b>${f1(e.rssi,0)} dBm</b> (min ${e.min}, max ${e.max}, mean ${f1(e.mean)})<br>SNR median <b>${f1(e.snrm)} dB</b><br>`:'<b class="no">No signal in this cell</b><br>'}
+      Samples: <b>${e.recv}</b> received${e.lost?` · ~<b>${e.lost}</b> lost`:''} · delivery <b>${e.del==null?'–':e.del.toFixed(0)+'%'}</b><br>
+      ${dist!=null?`Distance to ${esc(g.id)}: <b>${fmtD(dist)}</b><br>`:'Place a gateway to get distance.<br>'}
+      ${e.recv?`Link margin over SF${S.cfg.sf||12} sensitivity (${sens.toFixed(0)} dBm): <b>${f1(e.rssi-sens,0)} dB</b><br>`:''}
+      Terrain: <b id="hmCelEl">${e.elev!=null?'~'+e.elev.toFixed(0)+' m above sea level':'loading…'}</b><span id="hmCelDz"></span></div>
+    ${smp?`<table class="nt"><tr><th>Time</th><th>Gateway</th><th>RSSI</th><th>SNR</th><th>GPS</th></tr>${smp}</table>`:''}
+    <button class="b" id="hmClr" style="width:100%;justify-content:center;margin-top:10px">Clear selection</button>`;
+}
+async function hmCellElev(b,S,D,e){
+  try{
+    const k=D.base+e.k; if(HM.el[k]===undefined) HM.el[k]=await elevOnline(e.lat,e.lng); e.elev=HM.el[k];
+    const n=$('#hmCelEl'); if(n&&HM.sel===e.k) n.textContent=e.elev!=null?'~'+e.elev.toFixed(0)+' m above sea level':'unavailable';
+    const g=hmGwFor(b,D.sel,e.lat,e.lng);
+    if(g&&e.elev!=null){ const ge=await elevOnline(g.p.lat,g.p.lng), d=$('#hmCelDz'); if(d&&HM.sel===e.k) d.innerHTML=`<br>Height vs ${esc(g.id)} ground (~${ge.toFixed(0)} m): <b>${sg(e.elev-ge,0,' m')}</b>`; }
+  }catch(x){ const n=$('#hmCelEl'); if(n) n.textContent='unavailable (offline)'; }
+}
+function hmSide(b,D){
+  const S=D.S, el=$('#hmSide'), cell=HM.sel&&D.cells.find(e=>e.k===HM.sel);
+  if(cell){ el.innerHTML=hmCellHtml(b,S,D,cell); $('#hmClr').onclick=()=>{ HM.sel=null; renderHm(); }; hmCellElev(b,S,D,cell); return; }
+  const okc=D.cells.filter(e=>e.recv>=S.min&&e.rssi!=null), dead=D.cells.filter(e=>e.recv===0&&e.lost>=S.min).length;
+  const bins=RSSI_B.map(x=>({c:x[1],l:x[2],n:0})); okc.forEach(e=>{ for(let i=0;i<RSSI_B.length;i++){ if(e.rssi>=RSSI_B[i][0]){ bins[i].n++; break; } } });
+  const tot=okc.length+dead, tr=bins.map(x=>`<tr><td><i style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${x.c};margin-right:6px"></i>${x.l} dBm</td><td>${x.n}</td><td>${tot?(x.n/tot*100).toFixed(0)+'%':'–'}</td></tr>`).join('')
+    +`<tr><td><i style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#7f1d1d;margin-right:6px"></i>No signal</td><td>${dead}</td><td>${tot?(dead/tot*100).toFixed(0)+'%':'–'}</td></tr>`;
+  const far=D.recv.map(q=>{ const g=b.pos[q.rd.gid]; return g?hav(g.lat,g.lng,q.p.g[0],q.p.g[1]):null; }).filter(v=>v!=null);
+  const pk=[...D.packets].sort((x,y)=>x.run-y.run||x.t-y.t), gaps=[]; for(let i=1;i<pk.length;i++) if(pk[i].run===pk[i-1].run){ const d=hav(pk[i-1].g[0],pk[i-1].g[1],pk[i].g[0],pk[i].g[1]); if(d>=1) gaps.push(d); }
+  const sp=medA(gaps), g0=Object.keys(b.pos).filter(k=>k[0]==='G')[0];
+  el.innerHTML=`<h3>${esc(b.name)} <span class="h">· ${esc(b.code)}</span></h3>
+    <p class="h">${D.used.length} samples used (${D.packets.length} packets) · ~${D.lost.length} lost · ${D.nAcc} dropped for GPS error · ${D.nGps} without GPS</p>
+    <div class="sgbox"><table class="nt"><tr><th>Cell median</th><th>Cells</th><th>Share</th></tr>${tr}</table></div>
+    <p class="h">${far.length?`Farthest sample heard: <b>${fmtD(Math.max(...far))}</b> from its gateway.<br>`:(Object.keys(b.pos).length?'':'Place a gateway (buttons above the map) to get distances and rings.<br>')}
+    ${sp!=null?`Samples are about <b>${fmtD(sp)}</b> apart (median)${sp>S.cell*1.2?` — wider than your ${S.cell} m cells, so many cells stay empty. Use bigger cells, or stop and send a few packets at each point.`:'.'}<br>`:''}
+    Sensitivity at SF${S.cfg.sf||12}/${S.cfg.bw||125} kHz is about <b>${hmSens(S).toFixed(0)} dBm</b>.${g0?`<br>${esc(g0)} terrain: <span id="hmGwEl">loading…</span>${S.cfg.gh?` + ${esc(S.cfg.gh)} m antenna`:''}`:''}</p>
+    <p class="h">Click a cell for details. Different test passes are separated automatically when there is a pause of more than 30 minutes.</p>`;
+  if(g0) elevOnline(b.pos[g0].lat,b.pos[g0].lng).then(v=>{ const n=$('#hmGwEl'); if(n) n.textContent='~'+v.toFixed(0)+' m above sea level'; }).catch(()=>{ const n=$('#hmGwEl'); if(n) n.textContent='unavailable'; });
+}
+
+/* ---- render ---- */
+function hmSelects(D,S){
+  $('#hmGw').innerHTML='<option value="best">Best of all gateways</option>'+D.gws.map(g=>`<option value="${esc(g)}">${esc(g)} only</option>`).join(''); $('#hmGw').value=D.sel;
+  $('#hmNode').innerHTML='<option value="all">All nodes</option>'+D.nodes.map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join(''); $('#hmNode').value=D.nodes.includes(S.node)?S.node:'all';
+}
+function hmApplyUI(){
+  const b=hmBlock(); if(!b) return; const S=hmS(b);
+  $('#hmMetric').value=S.metric; $('#hmFMetric').value=S.metric; $('#hmStyle').value=S.style; $('#hmCell').value=String(S.cell); $('#hmMin').value=String(S.min); $('#hmAcc').value=S.acc;
+  $('#hmPath').value=S.path; $('#hmSince').value=String(S.since); $('#hmBase').value=S.base; hmBase(S.base); $('#hmOp').value=Math.round(S.op*100);
+  const sc=S.scale[S.metric]; $('#hmSmin').value=sc?sc[0]:''; $('#hmSmax').value=sc?sc[1]:''; $('#hmSmin').placeholder='auto'; $('#hmSmax').placeholder='auto';
+  [['#hmCellsBtn',S.cells,'▦ Cells'],['#hmSampBtn',S.samples,'● Samples'],['#hmRingBtn',S.rings,'⭕ Rings']].forEach(([id,on,t])=>{ $(id).classList.toggle('on',!!on); });
+  document.querySelectorAll('[data-cfg]').forEach(i=>{ i.value=S.cfg[i.dataset.cfg]??''; });
+  $('#hmFName').textContent=b.name;
+}
+async function renderHm(){
+  if(!HM.map) hmInit();
+  HM.map.invalidateSize(); hmTabs();
+  const b=hmBlock(), side=$('#hmSide');
+  if(HBerr){ HM.cellL.clearLayers(); HM.sampL.clearLayers(); HM.mkL.clearLayers();
+    side.innerHTML=`<h3>Heatmap</h3><p class="h">Could not read the <b>heatmap_blocks</b> table (${esc(HBerr)}). Create it with the SQL, then press Sync now.</p>`; return; }
+  if(!b){ HM.cellL.clearLayers(); HM.sampL.clearLayers(); HM.mkL.clearLayers(); $('#hmLg').innerHTML=''; $('#hmLg2').innerHTML='';
+    side.innerHTML=`<h3>Heatmap</h3><p class="h">No block yet. Press <b>＋ New block</b>, give it a name and a label code (for example SITEA). The app then labels samples SITEA-001, SITEA-002 and so on.</p>`; return; }
+  const tok=++HM.tok, D=hmCompute(b), S=D.S; HM.D=D;
+  hmSelects(D,S); const sc=S.scale[S.metric]; $('#hmSmin').value=sc?sc[0]:''; $('#hmSmax').value=sc?sc[1]:''; $('#hmFName').textContent=b.name;
+  if(S.metric==='elev'){ side.innerHTML='<p class="h">Loading terrain heights…</p>'; await hmElev(D); if(tok!==HM.tok) return; }
+  hmDraw(b,D); hmSide(b,D); hmLegend(S,D);
+}
+function hmFull(on){
+  HM.full=on; $('#hmStage').classList.toggle('hm-full',on); document.body.style.overflow=on?'hidden':'';
+  setTimeout(()=>{ HM.map.invalidateSize(); },60);
+}
+function hmCsv(){
+  const b=hmBlock(), D=HM.D; if(!b||!D) return; const S=D.S, q=v=>'"'+String(v??'').replace(/"/g,'""')+'"';
+  const H=['cell','lat','lng','samples','lost_estimated','rssi_median','rssi_mean','rssi_min','rssi_max','snr_median','delivery_pct','terrain_m_asl'];
+  dl('heatmap_'+b.code+'_'+S.cell+'m.csv',H.join(',')+'\n'+D.cells.map(e=>[e.k,e.lat.toFixed(6),e.lng.toFixed(6),e.recv,e.lost,e.rssi,e.mean==null?'':e.mean.toFixed(1),e.min,e.max,e.snrm,e.del==null?'':e.del.toFixed(0),e.elev==null?'':e.elev.toFixed(0)].map(q).join(',')).join('\n'));
+}
+function initHm(){
+  const set=(id,key,conv)=>{ $(id).onchange=e=>{ const b=hmBlock(); if(!b) return; const S=hmS(b); S[key]=conv?conv(e.target.value):e.target.value; if(key==='metric') hmApplyUI(); hmSaveLater(); renderHm(); }; };
+  set('#hmMetric','metric'); set('#hmFMetric','metric'); set('#hmGw','gw'); set('#hmCell','cell',Number); set('#hmMin','min',Number); set('#hmAcc','acc',v=>Math.max(1,+v||15));
+  set('#hmPath','path'); set('#hmStyle','style'); set('#hmNode','node'); set('#hmSince','since');
+  $('#hmBase').onchange=e=>{ const b=hmBlock(); if(b){ hmS(b).base=e.target.value; hmSaveLater(); } hmBase(e.target.value); };
+  $('#hmOp').oninput=e=>{ const b=hmBlock(); if(!b) return; hmS(b).op=(+e.target.value)/100; hmSaveLater(); renderHm(); };
+  const scale=()=>{ const b=hmBlock(); if(!b) return; const S=hmS(b), a=$('#hmSmin').value, z=$('#hmSmax').value; S.scale[S.metric]=(a===''||z==='')?null:[+a,+z]; hmSaveLater(); renderHm(); };
+  $('#hmSmin').onchange=scale; $('#hmSmax').onchange=scale;
+  [['#hmCellsBtn','cells'],['#hmSampBtn','samples'],['#hmRingBtn','rings']].forEach(([id,k])=>{ $(id).onclick=()=>{ const b=hmBlock(); if(!b) return; const S=hmS(b); S[k]=!S[k]; $(id).classList.toggle('on',S[k]); hmSaveLater(); renderHm(); }; });
+  document.querySelectorAll('[data-cfg]').forEach(i=>i.onchange=()=>{ const b=hmBlock(); if(!b) return; hmS(b).cfg[i.dataset.cfg]=i.value.trim(); hmSaveLater(); renderHm(); });
+  document.querySelectorAll('[data-hplace]').forEach(x=>x.onclick=()=>{
+    if(!hmBlock()) return alert('Create a block first.');
+    const same=HM.place===x.dataset.hplace; HM.place=same?null:x.dataset.hplace;
+    document.querySelectorAll('[data-hplace]').forEach(y=>y.classList.toggle('on',y===x&&!same)); $('#hmmap').style.cursor=HM.place?'crosshair':'';
+  });
+  $('#hmTabs').onclick=e=>{ const t=e.target.closest('button'); if(!t) return; if(t.dataset.hnew) return hmNew(t.dataset.hnew); const id=t.dataset.hb; if(!id) return; if(id==='new') hmNew(); else hmSwitch(id); };
+  $('#hmFit').onclick=()=>{ HM.fit=true; renderHm(); };
+  $('#hmRefresh').onclick=async()=>{ const b=hmBlock(); if(!b) return; try{ await hmFetch(b.code,true); }catch(e){ alert('Reload failed: '+e.message); } renderHm(); };
+  $('#hmCsv').onclick=hmCsv;
+  $('#hmSave').onclick=()=>{ HM.dirty=true; hmSave(); };
+  $('#hmRename').onclick=()=>{ const b=hmBlock(); if(!b) return; const n=prompt('Rename block',b.name); if(!n||!n.trim()) return; b.name=n.trim(); hmSaveLater(); renderHm(); };
+  $('#hmDelete').onclick=async()=>{
+    const b=hmBlock(); if(!b) return;
+    if(!confirm(`Delete the block "${b.name}"?\nIts settings and gateway positions are removed. The uploaded samples are NOT deleted; they appear again as a new "${b.code}" suggestion.`)) return;
+    try{ const r=await sbJ('DELETE',`heatmap_blocks?id=eq.${b.id}`,undefined,'return=minimal'); if(!r.ok) throw new Error('HTTP '+r.status);
+      HB=HB.filter(x=>x.id!==b.id); HM.cur=HB[0]?HB[0].id:null; HM.dirty=false; HM.fit=true; hmApplyUI(); renderHm(); }catch(e){ alert('Could not delete: '+e.message); }
+  };
+  $('#hmFull').onclick=()=>hmFull(!HM.full); $('#hmFExit').onclick=()=>hmFull(false);
+  document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&HM.full) hmFull(false); });
+}
+initHm();
 
 /* ---------- Theme (light / dark) ---------- */
 function setTheme(t,init){
