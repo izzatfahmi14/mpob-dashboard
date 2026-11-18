@@ -153,13 +153,60 @@ aside h3{margin-top:0}
 .hmcg input{font:inherit;padding:6px 8px;border:1px solid var(--bd);border-radius:7px;background:var(--inp);color:var(--tx);width:100%;margin-top:2px}
 #hm input[type=range]{width:90px;padding:0}
 .foot{margin-top:auto;padding:14px 0 6px;border-top:1px solid var(--bd);display:flex;justify-content:space-between;gap:8px 20px;flex-wrap:wrap;font-size:12px;color:var(--mut)}
+/* ---- Toasts ---- */
+#toasts{position:fixed;right:16px;bottom:16px;z-index:5000;display:flex;flex-direction:column;gap:8px;max-width:min(380px,calc(100vw - 32px))}
+.toast{background:var(--panel);color:var(--tx);border:1px solid var(--bd);border-left:4px solid var(--ac);border-radius:10px;padding:10px 34px 10px 12px;box-shadow:var(--sh);font-size:13px;position:relative;animation:tin .18s ease-out;white-space:pre-line}
+.toast.err{border-left-color:#ef4444}.toast.warn{border-left-color:#f59e0b}
+.toast button{position:absolute;top:6px;right:6px;border:0;background:none;color:var(--mut);cursor:pointer;font-size:15px;line-height:1}
+@keyframes tin{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+/* ---- Sign-in ---- */
+.auth{margin-top:12px;padding:10px;border:1px solid rgba(255,255,255,.12);border-radius:10px;font-size:12px}
+.auth small{display:block;text-transform:uppercase;letter-spacing:.8px;opacity:.7;margin-bottom:4px}
+.auth .who{color:#fff;font-weight:600;word-break:break-all}
+.auth .ro{color:#fbbf24}
+.modal{position:fixed;inset:0;z-index:4500;background:rgba(5,12,10,.55);display:none;align-items:center;justify-content:center;padding:16px}
+.modal.on{display:flex}
+.modal .card{width:min(380px,100%);padding:20px}
+.modal h3{margin:0 0 4px}.modal p{margin:0 0 12px;color:var(--mut);font-size:13px}
+.modal label{display:block;font-size:12px;color:var(--mut);margin-top:8px}
+.modal input{width:100%;font:inherit;padding:8px 10px;border:1px solid var(--bd);border-radius:8px;background:var(--inp);color:var(--tx);margin-top:3px}
+.modal .r{justify-content:space-between;align-items:center;margin-top:14px}
+.modal .lnk{background:none;border:0;color:var(--ac);cursor:pointer;font:inherit;font-size:12.5px;padding:0}
+.modal .er{color:#ef4444;font-size:12.5px;min-height:16px;margin-top:8px}
+/* ---- Device health ---- */
+.st{display:inline-flex;align-items:center;gap:6px;font-weight:600;font-size:12.5px}
+.st i{width:9px;height:9px;border-radius:50%;display:inline-block}
+.st.on i{background:#22c55e}.st.idle i{background:#f59e0b}.st.off i{background:#ef4444}.st.na i{background:#94a3b8}
+.hsum{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 10px}
+.hsum span{background:var(--soft);border-radius:99px;padding:3px 10px;font-size:12px}
+/* ---- Harvest page ---- */
+.hv-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,460px),1fr));gap:14px;margin-bottom:14px}
+#hv h3{margin:0 0 8px;font-size:14px}
+.due{color:#dc2626;font-weight:700}.soon{color:#d97706;font-weight:600}
+.hv-empty{padding:28px;text-align:center;color:var(--mut)}
+/* ---- Phone layout ---- */
+.menuBtn{display:none;margin-left:auto;background:rgba(255,255,255,.1);border:0;color:#fff;border-radius:8px;padding:6px 12px;font:inherit;cursor:pointer}
+@media(max-width:900px){
+  .rail{padding:10px 12px;gap:4px;z-index:1500;position:sticky;top:0}
+  .brand{margin:0;width:100%}.brand .icon{width:34px;height:34px}
+  .menuBtn{display:block}
+  .rail>:not(.brand){display:none}
+  .rail.open>:not(.brand){display:block;width:100%}
+  .rail.open>.nv{display:block}
+  .top h2{font-size:20px}.flow{display:none}
+  .tl input#q{width:100%}
+  #map,#sgmap,#hmmap{height:60vh;min-height:340px}
+  aside{max-height:none}
+  .kp{grid-template-columns:repeat(2,1fr)}.kp b{font-size:22px}
+}
 </style>
 </head>
 <body>
 <div class="app">
 <nav class="rail">
-  <div class="brand"><div class="icon"><img src="icon.png" alt="MPOB logo"></div><div><b>DMAPS MPOB</b><span>LoRa Dashboard</span></div></div>
-  <button class="nv on" data-v="dash" data-t="Overview" data-s="Block progress and field verification">▦ &nbsp;Overview</button>
+  <div class="brand"><div class="icon"><img src="icon.png" alt="MPOB logo"></div><div><b>DMAPS MPOB</b><span>LoRa Dashboard</span></div><button class="menuBtn" id="menuBtn" aria-label="Menu">☰ Menu</button></div>
+  <button class="nv on" data-v="dash" data-t="Overview" data-s="Block progress, device health and field verification">▦ &nbsp;Overview</button>
+  <button class="nv" data-v="hv" data-t="Harvest" data-s="Bunches and weight by day and block, and which trees are due for harvest">🌴 &nbsp;Harvest</button>
   <button class="nv" data-v="ed" data-t="Map Editor" data-s="Plant grid, tree IDs and live tree status">◎ &nbsp;Map Editor</button>
   <button class="nv" data-v="raw" data-t="Raw Data" data-s="Every LoRa upload received from the gateway">☰ &nbsp;Raw Data</button>
   <button class="nv" data-v="cmp" data-t="Hardware Compare" data-s="Heltec V3 vs V4 signal performance">📊 &nbsp;Hardware Compare</button>
@@ -176,17 +223,42 @@ aside h3{margin-top:0}
     <button class="b" id="ep">💾 Save project</button>
     <label class="b">📂 Load project<input type="file" id="ip" accept=".json" hidden></label>
   </div>
+  <div class="auth" id="authBox"><small>Staff</small><span class="h" style="color:inherit">Loading…</span></div>
   <button class="b" id="themeBtn" style="margin-top:12px">🌙 Dark mode</button>
   <div class="live"><i id="gwDot"></i><span id="gwTxt">App → Node → Gateway → Supabase · auto-sync 30 s</span></div>
 </nav>
 
 <main>
 <div class="top">
-  <div><h2 id="pt">Overview</h2><p id="ps">Block progress and field verification</p></div>
+  <div><h2 id="pt">Overview</h2><p id="ps">Block progress, device health and field verification</p></div>
   <span class="flow">MPOB LoRa Dashboard</span>
 </div>
 
 <div id="dash" class="v on"></div>
+
+<div id="hv" class="v">
+  <div class="tl">
+    <label>Period <select id="hvWin" style="width:120px"><option value="7">Last 7 days</option><option value="30" selected>Last 30 days</option><option value="90">Last 90 days</option><option value="0">All data</option></select></label>
+    <label>Block <select id="hvBlk" style="width:160px"></select></label>
+    <label title="Only count uploads whose QR matches a mapped tree and whose GPS is within the GPS validation distance"><input type="checkbox" id="hvVer" style="width:auto"> Verified only (QR + GPS)</label>
+    <label title="A tree is due when this many days have passed since its last harvest">Harvest round (days) <input id="hvRound" type="number" min="1" max="60" value="10" style="width:60px"></label>
+    <span class="sp"><button class="b" id="hvCsvD">Export daily CSV</button><button class="b" id="hvCsvT">Export trees CSV</button></span>
+  </div>
+  <p class="h" id="hvInfo" style="margin:4px 2px 10px"></p>
+  <div class="kp" id="hvKp"></div>
+  <div class="hv-grid">
+    <div class="card"><h3>Bunches per day</h3><div class="cv"><canvas id="hvCvD"></canvas></div></div>
+    <div class="card"><h3>By block</h3><div id="hvBlocks" style="overflow:auto"></div></div>
+  </div>
+  <div class="card" style="padding:0">
+    <div class="tl" style="margin:0;border:0;border-bottom:1px solid var(--bd);border-radius:14px 14px 0 0">
+      <b style="font-size:14px">Harvest round</b>
+      <select id="hvDue" style="width:170px"><option value="all">All mapped trees</option><option value="due">Due or overdue</option><option value="never">Never harvested</option></select>
+      <span id="hvDueInfo" class="h"></span>
+    </div>
+    <div style="overflow:auto;max-height:60vh"><table class="nt" id="hvTrees"></table></div>
+  </div>
+</div>
 
 <div id="raw" class="v">
   <div class="tl">
@@ -378,13 +450,28 @@ aside h3{margin-top:0}
 <footer class="foot">
   <span>© <span id="ftYear">2026</span> MPOB LoRa Dashboard · Developed by HSS</span>
   <span></span>
-  <span>v1.0 · Updated 29 Oct 2026</span>
+  <span>v1.1 · Updated 18 Nov 2026</span>
 </footer>
 </main>
+</div>
+<div id="toasts" aria-live="polite"></div>
+<div class="modal" id="authModal" role="dialog" aria-modal="true">
+  <form class="card" id="authForm" autocomplete="on">
+    <h3 id="amTitle">Staff sign in</h3>
+    <p id="amSub">Anyone can view the dashboard. Sign in to save changes.</p>
+    <div id="amEmailRow"><label>Email<input type="email" id="amEmail" autocomplete="username" required></label></div>
+    <div id="amPassRow"><label>Password<input type="password" id="amPass" autocomplete="current-password" minlength="6"></label></div>
+    <div class="er" id="amErr"></div>
+    <div class="r">
+      <button type="button" class="lnk" id="amForgot">Forgot password?</button>
+      <span style="display:flex;gap:6px"><button type="button" class="b" id="amCancel">Cancel</button><button type="submit" class="b p" id="amGo">Sign in</button></span>
+    </div>
+  </form>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.0/dist/umd/supabase.js"></script>
 <script>
 const $=s=>document.querySelector(s);
 let S={blocks:[]}, cur=0, sel=[], mode='sel', pend=[], showLines=true, showBuf=false, isTableView=false;
@@ -438,7 +525,9 @@ document.querySelectorAll('.nv').forEach(b=>b.onclick=()=>{
   else if(b.dataset.v=='cmp') renderCmp();
   else if(b.dataset.v=='sig') renderSig();
   else if(b.dataset.v=='hm') renderHm();
+  else if(b.dataset.v=='hv') renderHv();
   else dash();
+  const rl=$('.rail'); if(rl) rl.classList.remove('open');
 });
 
 /* ---------- Map ---------- */
@@ -530,6 +619,7 @@ $('#tglView').onclick=()=>{
    ============================================================ */
 const SB_URL='https://bjzlkfhiwmbcvtbpmnen.supabase.co', SB_KEY='sb_publishable_1nlPAlImP6EZHSCd0dXXig_gPxlPvFx';
 const sbH={apikey:SB_KEY,Authorization:'Bearer '+SB_KEY};
+let DEV=[], LIVE=false;
 let ALL=[], RF={}, BY={}, GW=[], GWerr='', TST=[], TSTerr='', BAT=[], BATerr='';     // RF = newest record per qr (radio health), BY = all records per qr (newest first)
 
 const up=s=>String(s??'').trim().toUpperCase();
@@ -559,36 +649,58 @@ function gwChip(){
   const d=$('#gwDot'), t=$('#gwTxt'); if(!d) return;
   if(!GW.length){ d.style.background='#94a3b8'; d.style.boxShadow='0 0 0 3px rgba(148,163,184,.25)'; t.textContent='Gateway: no heartbeat data'; return; }
   const on=GW.filter(gwOn).length, c=on===GW.length?'#34d399':on>0?'#f59e0b':'#ef4444';
-  d.style.background=c; d.style.boxShadow=`0 0 0 3px ${c}40`; t.textContent=`Gateways ${on}/${GW.length} online · auto-sync 30 s`;
+  d.style.background=c; d.style.boxShadow=`0 0 0 3px ${c}40`; t.textContent=`Gateways ${on}/${GW.length} online · `+(LIVE?'live updates':'auto-sync 30 s');
+}
+/* ---------- Device health: registered devices + anything seen in recent uploads ---------- */
+const DEV_ACTIVE=15*60, DEV_IDLE=24*3600;   /* nodes/repeaters: active < 15 min, idle < 24 h, else silent */
+const ROLE_L={gateway:'📡 Gateway',relay:'🔁 Repeater',node:'📟 Node'};
+let DEVSTATE={};
+function devHealth(){
+  const NA=(TST.length||HMS.length)?ALL.concat(TST,HMS):ALL, now=Date.now(), seen={};
+  const touch=(id,role,x)=>{ if(id==null) return; id=String(id).trim(); if(!id||/^0+$/.test(id)) return;
+    const o=seen[id]||(seen[id]={role,last:0,n24:0,r:null}); const t=new Date(x.created_at).getTime();
+    if(t>o.last){ o.last=t; o.r=x; } if(now-t<864e5) o.n24++; };
+  NA.forEach(x=>{ touch(x.gateway_id,'gateway',x); touch(x.node_id,'node',x); const p=pathOf(x); if(p.k==='R') touch(p.rid,'relay',x); });
+  const list=DEV.map(d=>({id:d.device_id,role:d.role||'node',hw:d.hw||'',note:d.note||'',reg:true}));
+  Object.entries(seen).forEach(([id,o])=>{ if(!list.some(d=>d.id===id)&&now-o.last<7*864e5) list.push({id,role:o.role,hw:'',note:'Not in devices list',reg:false}); });
+  GW.forEach(g=>{ if(!list.some(d=>d.id===g.gateway_id)) list.push({id:g.gateway_id,role:'gateway',hw:'',note:'',reg:false}); });
+  const ord={gateway:0,relay:1,node:2};
+  return list.map(d=>{
+    const s=seen[d.id], hb=d.role==='gateway'?GW.find(g=>g.gateway_id===d.id):null;
+    let last=s?s.last:0, st;
+    if(hb){ const t=new Date(hb.last_seen).getTime(); if(t>last) last=t; st=gwOn(hb)?'on':'off'; }
+    else if(!last) st='na';
+    else { const a=(now-last)/1000; st=a<DEV_ACTIVE?'on':a<DEV_IDLE?'idle':'off'; }
+    return Object.assign(d,{st,last,n24:s?s.n24:0,r:s?s.r:null,hb});
+  }).sort((a,b)=>(ord[a.role]??3)-(ord[b.role]??3)||a.id.localeCompare(b.id));
+}
+function devAlerts(list){
+  list.forEach(d=>{
+    const prev=DEVSTATE[d.id]; DEVSTATE[d.id]=d.st;
+    if(prev&&prev!==d.st&&d.role==='gateway'){
+      if(d.st==='off') toast(`Gateway ${d.id} has gone offline (no heartbeat for ${Math.round(GW_TTL/60*10)/10} min).`,'err',0);
+      else if(d.st==='on'&&prev==='off') toast(`Gateway ${d.id} is back online.`);
+    }
+  });
 }
 function netHtml(){
   gwChip();
-  const RP={}, ND={}, NA=(TST.length||HMS.length)?ALL.concat(TST,HMS).sort((a,b)=>new Date(b.created_at)-new Date(a.created_at)):ALL;
-  NA.forEach(x=>{
-    const p=pathOf(x);
-    if(p.k==='R'){
-      const id=p.rid||'(unknown)', o=RP[id]||(RP[id]={n:0,nodes:new Set(),last:x.created_at,rs:0,ss:0,c:0});
-      o.n++; if(x.node_id) o.nodes.add(String(x.node_id));
-      if(x.rssi!=null){ o.rs+=+x.rssi; o.ss+=+x.snr||0; o.c++; }
-    }
-    const nid=x.node_id;
-    if(nid!=null&&String(nid).trim()!==''){
-      const k=String(nid).trim(); if(!ND[k]) ND[k]={n:0,last:x.created_at,r:x}; ND[k].n++;
-    }
-  });
-  const empty=(n,t)=>`<tr><td colspan="${n}" class="h">${t}</td></tr>`;
-  const gw=GW.length?GW.map(g=>{ const on=gwOn(g);
-      return `<tr><td><span class="dot ${on?'on':'off'}"></span><b>${esc(g.gateway_id)}</b></td><td>${on?'Online':'Offline'}</td><td>${ago(g.last_seen)}</td><td>${g.rssi??'–'}</td><td>${esc(g.note||'')}</td></tr>`; }).join('')
-    : empty(5,GWerr?`Cannot read gateway_status (${esc(GWerr)}) – check the RLS select policy.`:'No heartbeat yet – the gateway must write to gateway_status.');
-  const rp=Object.entries(RP).map(([id,o])=>`<tr><td><b>${esc(id)}</b></td><td>${o.n}</td><td>${o.nodes.size||'–'}</td><td>${ago(o.last)}</td><td>${o.c?(o.rs/o.c).toFixed(0)+' / '+(o.ss/o.c).toFixed(1):'–'}</td></tr>`).join('')
-    || empty(5,'No relayed packets yet (needs relay_id / hop_count in uploads).');
-  const nd=Object.entries(ND).map(([id,o])=>`<tr><td><b>${esc(id)}</b></td><td>${pathBadge(o.r)}</td><td>${ago(o.last)}</td><td>${o.n}</td><td>${o.r.rssi??'–'} / ${o.r.snr??'–'}</td></tr>`).join('')
-    || empty(5,'No node_id in uploads yet.');
-  const last=NA.length?`Last upload received ${ago(NA[0].created_at)}`:'No uploads yet';
-  return `<div class="net">
-    <div class="card"><h3>📡 Gateways</h3><table class="nt"><tr><th>Gateway</th><th>Status</th><th>Last seen</th><th>RSSI</th><th>Note</th></tr>${gw}</table><p class="h" style="margin:8px 0 0">${last}</p></div>
-    <div class="card"><h3>🔁 Repeaters / Bridges</h3><table class="nt"><tr><th>Repeater</th><th>Packets</th><th>Nodes</th><th>Last seen</th><th>RSSI / SNR</th></tr>${rp}</table><p class="h" style="margin:8px 0 0">RSSI/SNR is measured at the gateway (last hop).</p></div>
-    <div class="card"><h3>📟 Nodes</h3><table class="nt"><tr><th>Node</th><th>Path</th><th>Last seen</th><th>Uploads</th><th>RSSI / SNR</th></tr>${nd}</table></div>
+  const list=devHealth(); devAlerts(list);
+  const NA=(TST.length||HMS.length)?ALL.concat(TST,HMS):ALL;
+  const newest=NA.reduce((m,x)=>Math.max(m,new Date(x.created_at).getTime()||0),0);
+  const L={on:'Online',idle:'Idle',off:'Offline',na:'No data'}, LR={on:'Active',idle:'Idle',off:'Silent',na:'No data'};
+  const cnt=r=>list.filter(d=>d.role===r), sum=r=>{ const a=cnt(r); return a.length?`${ROLE_L[r]}s: <b>${a.filter(d=>d.st==='on').length}/${a.length}</b> ${r==='gateway'?'online':'active'}`:''; };
+  const rows=list.map(d=>{
+    const lbl=(d.role==='gateway'?L:LR)[d.st], rs=d.hb&&d.hb.rssi!=null?d.hb.rssi:(d.r&&d.r.rssi!=null?d.r.rssi:null);
+    return `<tr><td><b>${esc(d.id)}</b>${d.hw?` <span class="hwtag ${esc(d.hw)}">${esc(d.hw)}</span>`:''}</td><td>${ROLE_L[d.role]||esc(d.role)}</td>
+      <td><span class="st ${d.st}"><i></i>${lbl}</span></td><td>${d.last?ago(d.last):'–'}</td><td>${d.n24}</td>
+      <td>${rs!=null?Math.round(rs):'–'}${d.r&&d.r.snr!=null&&!d.hb?' / '+(+d.r.snr).toFixed(1):''}</td><td class="h">${esc(d.hb&&d.hb.note?d.hb.note:d.note)}</td></tr>`;
+  }).join('')||`<tr><td colspan="7" class="h">No devices yet. Add them to the devices table${GWerr?` (gateway_status: ${esc(GWerr)})`:''}.</td></tr>`;
+  return `<div class="card" style="margin-bottom:16px;overflow:auto">
+    <h3 style="margin:0 0 8px;font-size:14px">Device health</h3>
+    <div class="hsum">${['gateway','relay','node'].map(sum).filter(Boolean).map(s=>`<span>${s}</span>`).join('')}<span>${newest?'Last upload '+ago(newest):'No uploads yet'}</span></div>
+    <table class="nt"><tr><th>Device</th><th>Role</th><th>Status</th><th>Last seen</th><th>Uploads (24 h)</th><th>RSSI / SNR</th><th>Note</th></tr>${rows}</table>
+    <p class="h" style="margin:8px 0 0">Gateways: Online = heartbeat in the last ${GW_TTL/60*10/10} min. Repeaters and nodes only send when used: Active = last 15 min, Idle = last 24 h, Silent = longer. RSSI/SNR is measured at the gateway.</p>
   </div>`;
 }
 function hav(la1,lo1,la2,lo2){
@@ -1079,6 +1191,10 @@ async function syncSupabase(){
       GW=g.ok?await g.json():[]; GWerr=g.ok?'':'HTTP '+g.status;
     }catch(e){ GW=[]; GWerr='offline'; }
     try{
+      const dv=await fetch(`${SB_URL}/rest/v1/devices?select=*&order=role,device_id`,{headers:sbH});
+      if(dv.ok) DEV=await dv.json();
+    }catch(e){}
+    try{
       const t=await fetch(`${SB_URL}/rest/v1/harvest_data?select=*&user_type=eq.T&order=created_at.desc&limit=2000`,{headers:sbH});
       if(t.ok){ mergeT(await t.json()); TSTerr=''; } else TSTerr='HTTP '+t.status;
     }catch(e){ TSTerr='offline'; }
@@ -1101,6 +1217,7 @@ function refreshAll(){
   if($('#cmp').classList.contains('on')) renderCmp();
   if($('#sig').classList.contains('on')) renderSig();
   if($('#hm').classList.contains('on')) renderHm();
+  if($('#hv').classList.contains('on')) renderHv();
   if($('#ed').classList.contains('on')){
     if(isTableView){ if(inTableEdit()) pendingRefresh=true; else renderTable(); }
     else { draw(); side(); }
@@ -2464,11 +2581,224 @@ setTheme(_th,true);
 $('#themeBtn').onclick=()=>setTheme(document.documentElement.dataset.theme==='dark'?'light':'dark');
 document.querySelectorAll('.nv').forEach(b=>b.addEventListener('click',()=>{ $('#pt').textContent=b.dataset.t; $('#ps').textContent=b.dataset.s; }));
 
+/* ============================================================
+   TOASTS (replace the old pop-up alerts)
+   ============================================================ */
+function toast(text,type='',ms=5000,act){
+  const box=$('#toasts'); if(!box) return;
+  const t=document.createElement('div'); t.className='toast '+(type||'');
+  t.textContent=String(text);
+  if(act){ const a=document.createElement('a'); a.href='#'; a.textContent=' '+act.label; a.style.cssText='color:var(--ac);font-weight:600;margin-left:4px';
+    a.onclick=e=>{ e.preventDefault(); t.remove(); act.fn(); }; t.appendChild(a); }
+  const x=document.createElement('button'); x.textContent='×'; x.setAttribute('aria-label','Close'); x.onclick=()=>t.remove(); t.appendChild(x);
+  box.appendChild(t); while(box.children.length>4) box.firstChild.remove();
+  if(ms) setTimeout(()=>t.remove(),ms);
+}
+window.alert=m=>toast(m,'err',7000);
+
+/* ============================================================
+   STAFF SIGN-IN (Supabase Auth)
+   Viewing is open. Saving changes needs a signed-in staff account.
+   ============================================================ */
+const AUTH_HASH=location.hash;
+const sb=(window.supabase&&window.supabase.createClient)?window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}}):null;
+let SESSION=null, STAFF=null, AM_MODE='in';
+function authUI(){
+  const box=$('#authBox'); if(!box) return;
+  if(!sb){ box.innerHTML='<small>Staff</small><span>Sign-in unavailable (offline)</span>'; return; }
+  if(!SESSION){ box.innerHTML='<small>Staff</small><div style="margin-bottom:4px">Viewing only</div><button class="b" id="abIn">🔐 Staff sign in</button>'; $('#abIn').onclick=()=>openAuth('in'); return; }
+  const em=SESSION.user&&SESSION.user.email||'';
+  box.innerHTML=`<small>Signed in</small><div class="who">${esc(em)}</div>`+(STAFF===false?'<div class="ro">Not on the staff list: viewing only</div>':'')+'<button class="b" id="abOut">Sign out</button>';
+  $('#abOut').onclick=async()=>{ await sb.auth.signOut(); toast('Signed out'); };
+}
+function setSession(s){
+  SESSION=s||null; sbH.Authorization='Bearer '+(SESSION?SESSION.access_token:SB_KEY);
+  if(!SESSION){ STAFF=null; authUI(); return; }
+  authUI();
+  setTimeout(async()=>{ try{ const {data,error}=await sb.rpc('is_staff'); STAFF=error?null:!!data; }catch(e){ STAFF=null; } authUI(); },0);
+}
+function openAuth(mode){
+  AM_MODE=mode; const m=$('#authModal'); $('#amErr').textContent='';
+  const T={in:['Staff sign in','Anyone can view the dashboard. Sign in to save changes.','Sign in'],
+           forgot:['Reset password','Enter your email and we\'ll send you a link to set a new password.','Send link'],
+           setpw:['Set your password','Choose a password for your staff account (at least 8 characters).','Save password']}[mode];
+  $('#amTitle').textContent=T[0]; $('#amSub').textContent=T[1]; $('#amGo').textContent=T[2];
+  $('#amEmailRow').style.display=mode==='setpw'?'none':''; $('#amPassRow').style.display=mode==='forgot'?'none':'';
+  $('#amEmail').required=mode!=='setpw'; $('#amPass').autocomplete=mode==='setpw'?'new-password':'current-password';
+  $('#amForgot').style.display=mode==='in'?'':'none';
+  m.classList.add('on'); setTimeout(()=>(mode==='setpw'?$('#amPass'):$('#amEmail')).focus(),50);
+}
+const closeAuth=()=>$('#authModal').classList.remove('on');
+$('#amCancel').onclick=closeAuth;
+$('#amForgot').onclick=()=>openAuth('forgot');
+$('#authModal').addEventListener('click',e=>{ if(e.target.id==='authModal') closeAuth(); });
+$('#authForm').onsubmit=async e=>{
+  e.preventDefault(); if(!sb) return;
+  const em=$('#amEmail').value.trim(), pw=$('#amPass').value, er=$('#amErr'); er.textContent=''; $('#amGo').disabled=true;
+  try{
+    if(AM_MODE==='in'){
+      const {error}=await sb.auth.signInWithPassword({email:em,password:pw}); if(error) throw error;
+      closeAuth(); toast('Signed in as '+em);
+    } else if(AM_MODE==='forgot'){
+      const {error}=await sb.auth.resetPasswordForEmail(em,{redirectTo:location.origin+location.pathname}); if(error) throw error;
+      closeAuth(); toast('If that email has a staff account, a reset link is on its way.');
+    } else {
+      if(pw.length<8) throw new Error('Use at least 8 characters.');
+      const {error}=await sb.auth.updateUser({password:pw}); if(error) throw error;
+      closeAuth(); toast('Password saved. You are signed in.');
+    }
+  }catch(x){ er.textContent=x.message==='Invalid login credentials'?'Wrong email or password.':x.message; }
+  $('#amGo').disabled=false; $('#amPass').value='';
+};
+if(sb){
+  sb.auth.onAuthStateChange((ev,s)=>{
+    setSession(s);
+    if(ev==='PASSWORD_RECOVERY'||(ev==='SIGNED_IN'&&/type=(invite|recovery)/.test(AUTH_HASH)&&!$('#authModal').classList.contains('on')&&!setSession.done)){ setSession.done=true; openAuth('setpw'); }
+  });
+} else authUI();
+
+/* Block writes before they reach Supabase when nobody (or a non-staff account) is signed in */
+const _fetch=window.fetch.bind(window); let _nagAt=0;
+function needSignIn(){
+  if(Date.now()-_nagAt<15000) return; _nagAt=Date.now();
+  if(SESSION) toast('Your account is not on the staff list, so changes are not saved. Ask the admin to add you.','warn',8000);
+  else toast('Changes are not saved until you sign in.','warn',8000,{label:'Sign in',fn:()=>openAuth('in')});
+}
+window.fetch=(u,o)=>{
+  const m=String((o&&o.method)||'GET').toUpperCase(), url=typeof u==='string'?u:(u&&u.url)||'';
+  if(url.startsWith(SB_URL+'/rest/v1/')&&!url.includes('/rest/v1/rpc/')&&m!=='GET'&&m!=='HEAD'&&(!SESSION||STAFF===false)){
+    needSignIn(); return Promise.reject(new Error('sign in as staff to save changes'));
+  }
+  return _fetch(u,o);
+};
+
+/* ============================================================
+   LIVE UPDATES (Supabase Realtime) — polling stays as a fallback
+   ============================================================ */
+let _rt=null;
+const liveRefresh=()=>{ clearTimeout(_rt); _rt=setTimeout(()=>{ AC.clear(); refreshAll(); },700); };
+function onLiveRow(x){
+  if(!x) return; const u=roleOf(x);
+  if(u==='T'){ mergeT([x]); if(typeof syncTests==='function'&&$('#sig').classList.contains('on')) renderSig(); }
+  else if(u==='M'){ mergeM([x]); }
+  else {
+    if(ALL.some(r=>r.id===x.id)) return;
+    ALL.unshift(x); const k=up(x.qr_id); if(k){ RF[k]=x; (BY[k]=BY[k]||[]).unshift(x); }
+    if(u==='H'||u==='C') toast(`New ${u==='H'?'harvest':'collection'} record: ${x.qr_id||'?'} · ${+x.bunch_count||0} bunch(es)`,'',4000);
+  }
+  liveRefresh();
+}
+function onLiveGw(p){
+  const g=p.new&&p.new.gateway_id?p.new:null, old=p.old&&p.old.gateway_id;
+  if(p.eventType==='DELETE'){ GW=GW.filter(x=>x.gateway_id!==old); }
+  else if(g){ const i=GW.findIndex(x=>x.gateway_id===g.gateway_id); if(i>=0) GW[i]=g; else GW.push(g); }
+  gwChip(); if($('#dash').classList.contains('on')) liveRefresh();
+}
+if(sb){
+  sb.channel('dashboard-live')
+    .on('postgres_changes',{event:'INSERT',schema:'public',table:'harvest_data'},p=>onLiveRow(p.new))
+    .on('postgres_changes',{event:'*',schema:'public',table:'gateway_status'},onLiveGw)
+    .subscribe(st=>{ const was=LIVE; LIVE=st==='SUBSCRIBED'; if(was!==LIVE) gwChip(); });
+}
+/* gateway Online/Offline depends on time passing, so re-check every 30 s even with no new data */
+setInterval(()=>{ if(!LIVE) return; if($('#dash').classList.contains('on')) dash(); else gwChip(); },30000);
+
+/* ============================================================
+   HARVEST PAGE
+   ============================================================ */
+const dayKey=t=>{ const d=new Date(t); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); };
+const wcount=r=>[1,2,3,4,5,6,7,8,9,10].filter(i=>+r['w'+i]>0).length;
+const fmtN=(v,d=0)=>(+v||0).toLocaleString(undefined,{minimumFractionDigits:d,maximumFractionDigits:d});
+let HV={};
+function hvTreeIndex(){
+  const TI=new Map();
+  S.blocks.forEach(b=>b.trees.forEach(t=>[t.qr,t.id,t.rfid].filter(Boolean).forEach(k=>{ if(!TI.has(up(k))) TI.set(up(k),{t,b}); })));
+  return TI;
+}
+function hvCompute(){
+  const win=+$('#hvWin').value, from=win?Date.now()-win*864e5:0, bsel=$('#hvBlk').value, ver=$('#hvVer').checked, round=Math.max(1,+$('#hvRound').value||10);
+  const TI=hvTreeIndex();
+  const all=ALL.filter(x=>{ const r=roleOf(x); return r==='H'||r==='C'; }).map(x=>{
+    const m=TI.get(up(x.qr_id)); let ok=false;
+    if(m){ const g=recGPS(x); ok=!!g&&hav(m.t.lat,m.t.lng,g[0],g[1])<=CFG.tol; }
+    return {x,r:roleOf(x),t:m?m.t:null,b:m?m.b:null,ok,ts:new Date(x.created_at).getTime(),n:+x.bunch_count||0,w:wsum(x),wn:wcount(x)};
+  }).filter(o=>(!ver||o.ok)&&(bsel==='all'||(bsel==='__none'?!o.b:o.b&&o.b.name===bsel)));
+  const rows=all.filter(o=>o.ts>=from);
+  /* per day */
+  const days=new Map();
+  if(rows.length){
+    const first=win?from:Math.min(...rows.map(o=>o.ts)), start=new Date(Math.max(first,Date.now()-180*864e5)); start.setHours(0,0,0,0);
+    for(let d=new Date(start);d<=new Date();d.setDate(d.getDate()+1)) days.set(dayKey(d),{h:0,c:0,w:0,u:0});
+  }
+  rows.forEach(o=>{ const k=dayKey(o.ts), d=days.get(k)||(days.set(k,{h:0,c:0,w:0,u:0}),days.get(k)); d.u++; d.w+=o.w; if(o.r==='H') d.h+=o.n; else d.c+=o.n; });
+  /* per block */
+  const blocks=new Map(), bk=b=>b?b.name:'__none';
+  S.blocks.forEach(b=>{ if(bsel==='all'||bsel===b.name) blocks.set(b.name,{name:b.name,trees:b.trees.length,ht:new Set(),h:0,c:0,w:0,last:0}); });
+  rows.forEach(o=>{ const k=bk(o.b); if(!blocks.has(k)) blocks.set(k,{name:o.b?o.b.name:'Not mapped to a tree',trees:o.b?o.b.trees.length:0,ht:new Set(),h:0,c:0,w:0,last:0});
+    const B=blocks.get(k); B.w+=o.w; if(o.r==='H'){ B.h+=o.n; if(o.t) B.ht.add(o.t); B.last=Math.max(B.last,o.ts); } else B.c+=o.n; });
+  /* harvest round: last valid harvester record per tree, over all time */
+  const lastH=new Map();
+  all.forEach(o=>{ if(o.r!=='H'||!o.t) return; const p=lastH.get(o.t); if(!p||o.ts>p.ts) lastH.set(o.t,o); });
+  const trees=[];
+  S.blocks.forEach(b=>{ if(bsel!=='all'&&bsel!==b.name) return; b.trees.forEach(t=>{
+    const o=lastH.get(t), days=o?Math.floor((Date.now()-o.ts)/864e5):null;
+    const st=o==null?'never':days>round?'due':days>=round-2?'soon':'ok';
+    trees.push({b,t,o,days,st}); }); });
+  const rank={due:0,soon:1,never:2,ok:3};
+  trees.sort((a,c)=>rank[a.st]-rank[c.st]||(c.days??-1)-(a.days??-1)||a.b.name.localeCompare(c.b.name)||a.t.no-c.t.no);
+  const H=rows.filter(o=>o.r==='H'), C=rows.filter(o=>o.r==='C'), W=rows.reduce((s,o)=>s+o.w,0), WN=rows.reduce((s,o)=>s+o.wn,0);
+  return HV={win,round,rows,days,blocks:[...blocks.values()],trees,
+    k:{h:H.reduce((s,o)=>s+o.n,0),c:C.reduce((s,o)=>s+o.n,0),w:W,avg:WN?W/WN:null,th:new Set(H.filter(o=>o.t).map(o=>o.t)).size,un:rows.filter(o=>!o.t).length,
+       due:trees.filter(x=>x.st==='due').length}};
+}
+function renderHv(){
+  const s=$('#hvBlk'), v=s.value||'all';
+  s.innerHTML='<option value="all">All blocks</option>'+S.blocks.map(b=>`<option value="${esc(b.name)}">${esc(b.name)}</option>`).join('')+'<option value="__none">Not mapped to a tree</option>';
+  s.value=[...s.options].some(o=>o.value===v)?v:'all';
+  const D=hvCompute(), K=D.k, kp=(l,v,c='')=>`<div class="card ${c}"><b>${v}</b><span>${l}</span></div>`;
+  $('#hvKp').innerHTML=kp('Bunches harvested',fmtN(K.h))+kp('Bunches collected',fmtN(K.c))+kp('Collected vs harvested',K.h?Math.round(K.c/K.h*100)+'%':'–')
+    +kp('Weight recorded (kg)',fmtN(K.w,1))+kp('Avg bunch weight (kg)',K.avg==null?'–':fmtN(K.avg,1))+kp('Trees harvested',fmtN(K.th))
+    +kp('Trees due / overdue',fmtN(K.due),K.due?'kx':'');
+  $('#hvInfo').textContent=D.rows.length
+    ?`${D.rows.length} harvester/collector upload(s) in this period`+(K.un?` · ${K.un} could not be matched to a mapped tree (QR not in the Map Editor)`:'')+(!$('#hvVer').checked?' · showing all uploads (tick "Verified only" to apply the GPS check)':'')
+    :'No harvester or collector uploads in this period. During device testing this is expected; the page fills in as field data arrives.';
+  /* chart */
+  chTheme();
+  const L=[...D.days.keys()], V=[...D.days.values()];
+  if(L.length){
+    mk('hvCvD',{type:'bar',data:{labels:L.map(k=>{ const d=new Date(k+'T00:00'); return d.toLocaleDateString([],{day:'numeric',month:'short'}); }),
+      datasets:[{label:'Harvested',data:V.map(d=>d.h),backgroundColor:'#eab308',yAxisID:'y'},
+                {label:'Collected',data:V.map(d=>d.c),backgroundColor:'#16a34a',yAxisID:'y'},
+                {label:'Weight (kg)',data:V.map(d=>+d.w.toFixed(1)),type:'line',borderColor:'#2563eb',backgroundColor:'#2563eb',pointRadius:2,tension:.25,yAxisID:'y1'}]},
+      options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{position:'top'}},
+        scales:{x:{grid:{display:false}},y:{beginAtZero:true,title:{display:true,text:'Bunches'},ticks:{precision:0}},y1:{beginAtZero:true,position:'right',grid:{drawOnChartArea:false},title:{display:true,text:'kg'}}}}});
+  } else { clr('hvCvD'); const c=$('#hvCvD'); c.getContext('2d').clearRect(0,0,c.width,c.height); }
+  /* blocks */
+  $('#hvBlocks').innerHTML=D.blocks.length?`<table class="nt"><tr><th>Block</th><th>Trees harvested</th><th>Harvested</th><th>Collected</th><th>Weight (kg)</th><th>Last harvest</th></tr>`
+    +D.blocks.map(B=>`<tr><td><b>${esc(B.name)}</b></td><td>${B.ht.size}${B.trees?' / '+B.trees:''}</td><td>${fmtN(B.h)}</td><td>${fmtN(B.c)}</td><td>${fmtN(B.w,1)}</td><td>${B.last?new Date(B.last).toLocaleDateString():'–'}</td></tr>`).join('')+'</table>'
+    :'<div class="hv-empty">No blocks yet. Create them in the Map Editor.</div>';
+  /* trees */
+  const f=$('#hvDue').value, T=D.trees.filter(x=>f==='all'||(f==='due'?(x.st==='due'||x.st==='soon'):x.st==='never')), shown=T.slice(0,500);
+  $('#hvDueInfo').textContent=`${T.length} tree(s)`+(T.length>500?' (first 500 shown)':'')+` · due after ${D.round} days`;
+  const stl=x=>x.st==='due'?`<span class="due">Overdue ${x.days-D.round} d</span>`:x.st==='soon'?'<span class="soon">Due soon</span>':x.st==='never'?'<span class="h">Never harvested</span>':'<span class="ok">OK</span>';
+  $('#hvTrees').innerHTML=`<tr><th>Block</th><th>Tree</th><th>Tree ID / QR</th><th>Last harvest</th><th>Days since</th><th>Bunches</th><th>Status</th></tr>`
+    +(shown.map(x=>`<tr><td>${esc(x.b.name)}</td><td>${x.t.no} <span class="h">(row ${x.t.row})</span></td><td>${esc(x.t.id||x.t.qr||x.t.rfid||'–')}</td><td>${x.o?new Date(x.o.ts).toLocaleString():'–'}</td><td>${x.days??'–'}</td><td>${x.o?x.o.n:'–'}</td><td>${stl(x)}</td></tr>`).join('')
+      ||'<tr><td colspan="7" class="hv-empty">No trees match.</td></tr>');
+}
+['#hvWin','#hvBlk','#hvVer','#hvRound','#hvDue'].forEach(id=>$(id).addEventListener('change',renderHv));
+const csvQ=v=>'"'+String(v??'').replace(/"/g,'""')+'"';
+$('#hvCsvD').onclick=()=>{ const D=hvCompute(); dl('harvest-daily.csv','date,bunches_harvested,bunches_collected,weight_kg,uploads\n'+[...D.days].map(([k,d])=>[k,d.h,d.c,d.w.toFixed(2),d.u].join(',')).join('\n')); };
+$('#hvCsvT').onclick=()=>{ const D=hvCompute(); dl('harvest-trees.csv','block,tree_no,row,tree_id,qr,last_harvest,days_since,bunches,status\n'+D.trees.map(x=>[x.b.name,x.t.no,x.t.row,x.t.id,x.t.qr,x.o?new Date(x.o.ts).toISOString():'',x.days??'',x.o?x.o.n:'',x.st].map(csvQ).join(',')).join('\n')); };
+
+/* ---------- Phone menu ---------- */
+$('#menuBtn').onclick=()=>$('.rail').classList.toggle('open');
+
 dash();
 /* new/empty browser: pull the tree layout from Supabase automatically */
 if(!S.blocks.some(b=>b.trees.length)) pullTrees(true);
 syncSupabase();
-setInterval(syncSupabase,30000);
+/* full re-sync: every 30 s, or every 2 min while live updates are connected */
+let _tick=0; setInterval(()=>{ _tick++; if(!LIVE||_tick%4===0) syncSupabase(); },30000);
 </script>
 </body>
 </html>
