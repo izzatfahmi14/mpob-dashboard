@@ -173,6 +173,14 @@ aside h3{margin-top:0}
 .modal .r{justify-content:space-between;align-items:center;margin-top:14px}
 .modal .lnk{background:none;border:0;color:var(--ac);cursor:pointer;font:inherit;font-size:12.5px;padding:0}
 .modal .er{color:#ef4444;font-size:12.5px;min-height:16px;margin-top:8px}
+body.locked .app{display:none}
+.modal.gate{background:var(--bg)}
+.modal .gbrand{display:none;align-items:center;gap:10px;margin-bottom:14px}
+.modal.gate .gbrand{display:flex}
+.modal .gbrand img{width:42px;height:42px;object-fit:contain}
+.modal .gbrand b{display:block;font-size:16px}.modal .gbrand span{font-size:12px;color:var(--mut)}
+.modal.gate #amCancel{display:none}
+#amNote{display:none;font-size:13px;margin-top:6px}
 /* ---- Device health ---- */
 .st{display:inline-flex;align-items:center;gap:6px;font-weight:600;font-size:12.5px}
 .st i{width:9px;height:9px;border-radius:50%;display:inline-block}
@@ -201,7 +209,7 @@ aside h3{margin-top:0}
 }
 </style>
 </head>
-<body>
+<body class="locked">
 <div class="app">
 <nav class="rail">
   <div class="brand"><div class="icon"><img src="icon.png" alt="MPOB logo"></div><div><b>DMAPS MPOB</b><span>LoRa Dashboard</span></div><button class="menuBtn" id="menuBtn" aria-label="Menu">☰ Menu</button></div>
@@ -457,8 +465,10 @@ aside h3{margin-top:0}
 <div id="toasts" aria-live="polite"></div>
 <div class="modal" id="authModal" role="dialog" aria-modal="true">
   <form class="card" id="authForm" autocomplete="on">
+    <div class="gbrand"><img src="icon.png" alt="MPOB logo"><div><b>DMAPS MPOB</b><span>LoRa Dashboard</span></div></div>
     <h3 id="amTitle">Staff sign in</h3>
-    <p id="amSub">Anyone can view the dashboard. Sign in to save changes.</p>
+    <p id="amSub">Sign in with your staff account.</p>
+    <div id="amNote"></div>
     <div id="amEmailRow"><label>Email<input type="email" id="amEmail" autocomplete="username" required></label></div>
     <div id="amPassRow"><label>Password<input type="password" id="amPass" autocomplete="current-password" minlength="6"></label></div>
     <div class="er" id="amErr"></div>
@@ -2187,7 +2197,6 @@ function initSig(){
 }
 
 initSig();
-setInterval(syncTests,6000);
 
 /* ============ Heatmap tab (user type M, saved blocks / sites) ============ */
 const HM_DEF={metric:'rssi',gw:'best',cell:50,min:2,acc:15,path:'all',node:'all',since:'0',base:'google_sat',op:.75,cells:true,style:'smooth',samples:false,rings:true,origin:null,
@@ -2598,76 +2607,85 @@ window.alert=m=>toast(m,'err',7000);
 
 /* ============================================================
    STAFF SIGN-IN (Supabase Auth)
-   Viewing is open. Saving changes needs a signed-in staff account.
+   The whole dashboard is staff-only: nothing is loaded until a
+   signed-in account on the staff list is confirmed.
    ============================================================ */
 const AUTH_HASH=location.hash;
 const sb=(window.supabase&&window.supabase.createClient)?window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}}):null;
-let SESSION=null, STAFF=null, AM_MODE='in';
+let SESSION=null, STAFF=null, AM_MODE='in', STARTED=false, NEED_PW=/type=(invite|recovery)/.test(AUTH_HASH);
+const signOut=async()=>{ try{ await sb.auth.signOut(); }catch(e){} location.replace(location.pathname); };
 function authUI(){
   const box=$('#authBox'); if(!box) return;
-  if(!sb){ box.innerHTML='<small>Staff</small><span>Sign-in unavailable (offline)</span>'; return; }
-  if(!SESSION){ box.innerHTML='<small>Staff</small><div style="margin-bottom:4px">Viewing only</div><button class="b" id="abIn">🔐 Staff sign in</button>'; $('#abIn').onclick=()=>openAuth('in'); return; }
-  const em=SESSION.user&&SESSION.user.email||'';
-  box.innerHTML=`<small>Signed in</small><div class="who">${esc(em)}</div>`+(STAFF===false?'<div class="ro">Not on the staff list: viewing only</div>':'')+'<button class="b" id="abOut">Sign out</button>';
-  $('#abOut').onclick=async()=>{ await sb.auth.signOut(); toast('Signed out'); };
+  const em=SESSION&&SESSION.user&&SESSION.user.email||'';
+  box.innerHTML=`<small>Signed in</small><div class="who">${esc(em)}</div><button class="b" id="abOut">Sign out</button>`;
+  $('#abOut').onclick=signOut;
+}
+function openAuth(mode,note){
+  AM_MODE=mode; const m=$('#authModal'); $('#amErr').textContent='';
+  const T={in:['Staff sign in','Sign in with your staff account to open the dashboard.','Sign in'],
+           forgot:['Reset password','Enter your email and we\'ll send you a link to set a new password.','Send link'],
+           setpw:['Set your password','Choose a password for your staff account (at least 8 characters).','Save password'],
+           wait:['Checking access…','One moment.',''],
+           denied:['No access','',''],
+           offline:['Can\'t reach the server','Check your internet connection, then reload the page.','']}[mode];
+  $('#amTitle').textContent=T[0]; $('#amSub').textContent=T[1]; $('#amGo').textContent=T[2];
+  const form=mode==='in'||mode==='forgot'||mode==='setpw';
+  $('#amEmailRow').style.display=(mode==='in'||mode==='forgot')?'':'none'; $('#amPassRow').style.display=(mode==='in'||mode==='setpw')?'':'none';
+  $('#amEmail').required=mode==='in'||mode==='forgot'; $('#amPass').autocomplete=mode==='setpw'?'new-password':'current-password';
+  $('#amForgot').style.display=mode==='in'?'':'none'; $('#amGo').style.display=form?'':'none';
+  $('#amCancel').style.display=mode==='forgot'?'':'none'; $('#amCancel').textContent='Back';
+  const n=$('#amNote'); n.style.display=note?'block':'none'; n.innerHTML=note||'';
+  m.classList.add('on','gate');
+  if(form) setTimeout(()=>(mode==='setpw'?$('#amPass'):$('#amEmail')).focus(),50);
+}
+function applyAccess(){
+  if(!sb){ document.body.classList.add('locked'); openAuth('offline'); return; }
+  if(NEED_PW&&SESSION){ document.body.classList.add('locked'); if(AM_MODE!=='setpw') openAuth('setpw'); return; }
+  if(!SESSION){ document.body.classList.add('locked'); if(AM_MODE!=='in'&&AM_MODE!=='forgot'||!$('#authModal').classList.contains('on')) openAuth('in'); return; }
+  if(STAFF===null){ document.body.classList.add('locked'); openAuth('wait'); return; }
+  if(STAFF===false){ document.body.classList.add('locked');
+    openAuth('denied',`<p style="margin:0 0 10px">You're signed in as <b>${esc(SESSION.user.email)}</b>, but this account is not on the staff list. Ask the dashboard admin to add you.</p><button type="button" class="b" id="amOut">Sign out</button>`);
+    $('#amOut').onclick=signOut; return; }
+  $('#authModal').classList.remove('on','gate'); document.body.classList.remove('locked'); authUI(); startData();
 }
 function setSession(s){
-  SESSION=s||null; sbH.Authorization='Bearer '+(SESSION?SESSION.access_token:SB_KEY);
-  if(!SESSION){ STAFF=null; authUI(); return; }
-  authUI();
-  setTimeout(async()=>{ try{ const {data,error}=await sb.rpc('is_staff'); STAFF=error?null:!!data; }catch(e){ STAFF=null; } authUI(); },0);
+  const prev=SESSION&&SESSION.user&&SESSION.user.id; SESSION=s||null;
+  sbH.Authorization='Bearer '+(SESSION?SESSION.access_token:SB_KEY);
+  if(!SESSION){ STAFF=null; applyAccess(); return; }
+  if(prev===SESSION.user.id&&STAFF!==null){ return; }   /* token refresh: nothing to re-check */
+  STAFF=null; applyAccess();
+  setTimeout(async()=>{ try{ const {data,error}=await sb.rpc('is_staff'); STAFF=error?false:!!data; }catch(e){ STAFF=false; } applyAccess(); },0);
 }
-function openAuth(mode){
-  AM_MODE=mode; const m=$('#authModal'); $('#amErr').textContent='';
-  const T={in:['Staff sign in','Anyone can view the dashboard. Sign in to save changes.','Sign in'],
-           forgot:['Reset password','Enter your email and we\'ll send you a link to set a new password.','Send link'],
-           setpw:['Set your password','Choose a password for your staff account (at least 8 characters).','Save password']}[mode];
-  $('#amTitle').textContent=T[0]; $('#amSub').textContent=T[1]; $('#amGo').textContent=T[2];
-  $('#amEmailRow').style.display=mode==='setpw'?'none':''; $('#amPassRow').style.display=mode==='forgot'?'none':'';
-  $('#amEmail').required=mode!=='setpw'; $('#amPass').autocomplete=mode==='setpw'?'new-password':'current-password';
-  $('#amForgot').style.display=mode==='in'?'':'none';
-  m.classList.add('on'); setTimeout(()=>(mode==='setpw'?$('#amPass'):$('#amEmail')).focus(),50);
-}
-const closeAuth=()=>$('#authModal').classList.remove('on');
-$('#amCancel').onclick=closeAuth;
+$('#amCancel').onclick=()=>openAuth('in');
 $('#amForgot').onclick=()=>openAuth('forgot');
-$('#authModal').addEventListener('click',e=>{ if(e.target.id==='authModal') closeAuth(); });
 $('#authForm').onsubmit=async e=>{
   e.preventDefault(); if(!sb) return;
   const em=$('#amEmail').value.trim(), pw=$('#amPass').value, er=$('#amErr'); er.textContent=''; $('#amGo').disabled=true;
   try{
     if(AM_MODE==='in'){
       const {error}=await sb.auth.signInWithPassword({email:em,password:pw}); if(error) throw error;
-      closeAuth(); toast('Signed in as '+em);
     } else if(AM_MODE==='forgot'){
       const {error}=await sb.auth.resetPasswordForEmail(em,{redirectTo:location.origin+location.pathname}); if(error) throw error;
-      closeAuth(); toast('If that email has a staff account, a reset link is on its way.');
-    } else {
+      openAuth('in'); toast('If that email has a staff account, a reset link is on its way.');
+    } else if(AM_MODE==='setpw'){
       if(pw.length<8) throw new Error('Use at least 8 characters.');
       const {error}=await sb.auth.updateUser({password:pw}); if(error) throw error;
-      closeAuth(); toast('Password saved. You are signed in.');
+      NEED_PW=false; history.replaceState(null,'',location.pathname); toast('Password saved.'); applyAccess();
     }
   }catch(x){ er.textContent=x.message==='Invalid login credentials'?'Wrong email or password.':x.message; }
   $('#amGo').disabled=false; $('#amPass').value='';
 };
 if(sb){
-  sb.auth.onAuthStateChange((ev,s)=>{
-    setSession(s);
-    if(ev==='PASSWORD_RECOVERY'||(ev==='SIGNED_IN'&&/type=(invite|recovery)/.test(AUTH_HASH)&&!$('#authModal').classList.contains('on')&&!setSession.done)){ setSession.done=true; openAuth('setpw'); }
-  });
-} else authUI();
+  sb.auth.onAuthStateChange((ev,s)=>{ if(ev==='PASSWORD_RECOVERY') NEED_PW=true; setSession(s); });
+} else applyAccess();
 
-/* Block writes before they reach Supabase when nobody (or a non-staff account) is signed in */
+/* Block writes before they reach Supabase unless a staff account is signed in */
 const _fetch=window.fetch.bind(window); let _nagAt=0;
-function needSignIn(){
-  if(Date.now()-_nagAt<15000) return; _nagAt=Date.now();
-  if(SESSION) toast('Your account is not on the staff list, so changes are not saved. Ask the admin to add you.','warn',8000);
-  else toast('Changes are not saved until you sign in.','warn',8000,{label:'Sign in',fn:()=>openAuth('in')});
-}
 window.fetch=(u,o)=>{
   const m=String((o&&o.method)||'GET').toUpperCase(), url=typeof u==='string'?u:(u&&u.url)||'';
-  if(url.startsWith(SB_URL+'/rest/v1/')&&!url.includes('/rest/v1/rpc/')&&m!=='GET'&&m!=='HEAD'&&(!SESSION||STAFF===false)){
-    needSignIn(); return Promise.reject(new Error('sign in as staff to save changes'));
+  if(url.startsWith(SB_URL+'/rest/v1/')&&!url.includes('/rest/v1/rpc/')&&m!=='GET'&&m!=='HEAD'&&STAFF!==true){
+    if(Date.now()-_nagAt>15000){ _nagAt=Date.now(); toast('Changes are not saved: you are not signed in as staff.','warn',8000); }
+    return Promise.reject(new Error('sign in as staff to save changes'));
   }
   return _fetch(u,o);
 };
@@ -2679,7 +2697,7 @@ let _rt=null;
 const liveRefresh=()=>{ clearTimeout(_rt); _rt=setTimeout(()=>{ AC.clear(); refreshAll(); },700); };
 function onLiveRow(x){
   if(!x) return; const u=roleOf(x);
-  if(u==='T'){ mergeT([x]); if(typeof syncTests==='function'&&$('#sig').classList.contains('on')) renderSig(); }
+  if(u==='T'){ mergeT([x]); }
   else if(u==='M'){ mergeM([x]); }
   else {
     if(ALL.some(r=>r.id===x.id)) return;
@@ -2694,14 +2712,27 @@ function onLiveGw(p){
   else if(g){ const i=GW.findIndex(x=>x.gateway_id===g.gateway_id); if(i>=0) GW[i]=g; else GW.push(g); }
   gwChip(); if($('#dash').classList.contains('on')) liveRefresh();
 }
-if(sb){
+function startLive(){
+  if(!sb) return;
   sb.channel('dashboard-live')
     .on('postgres_changes',{event:'INSERT',schema:'public',table:'harvest_data'},p=>onLiveRow(p.new))
     .on('postgres_changes',{event:'*',schema:'public',table:'gateway_status'},onLiveGw)
     .subscribe(st=>{ const was=LIVE; LIVE=st==='SUBSCRIBED'; if(was!==LIVE) gwChip(); });
 }
-/* gateway Online/Offline depends on time passing, so re-check every 30 s even with no new data */
-setInterval(()=>{ if(!LIVE) return; if($('#dash').classList.contains('on')) dash(); else gwChip(); },30000);
+
+/* Load data only after access is confirmed */
+function startData(){
+  if(STARTED) return; STARTED=true;
+  dash();
+  if(!S.blocks.some(b=>b.trees.length)) pullTrees(true);   /* new/empty browser: pull the tree layout */
+  syncSupabase(); startLive();
+  /* full re-sync every 30 s, or every 2 min while live updates are connected */
+  let tick=0; setInterval(()=>{ tick++; if(!LIVE||tick%4===0) syncSupabase(); },30000);
+  /* gateway Online/Offline depends on time passing, so re-check every 30 s when live */
+  setInterval(()=>{ if(!LIVE) return; if($('#dash').classList.contains('on')) dash(); else gwChip(); },30000);
+  /* Signal Test keeps its own fast refresh while a test runs */
+  setInterval(syncTests,6000);
+}
 
 /* ============================================================
    HARVEST PAGE
@@ -2792,13 +2823,6 @@ $('#hvCsvT').onclick=()=>{ const D=hvCompute(); dl('harvest-trees.csv','block,tr
 
 /* ---------- Phone menu ---------- */
 $('#menuBtn').onclick=()=>$('.rail').classList.toggle('open');
-
-dash();
-/* new/empty browser: pull the tree layout from Supabase automatically */
-if(!S.blocks.some(b=>b.trees.length)) pullTrees(true);
-syncSupabase();
-/* full re-sync: every 30 s, or every 2 min while live updates are connected */
-let _tick=0; setInterval(()=>{ _tick++; if(!LIVE||_tick%4===0) syncSupabase(); },30000);
 </script>
 </body>
 </html>
